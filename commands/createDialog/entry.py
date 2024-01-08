@@ -1,5 +1,5 @@
 import adsk.core
-import os
+import os, math, traceback
 from ...lib import fusion360utils as futil
 from ... import config
 app = adsk.core.Application.get()
@@ -19,12 +19,12 @@ IS_PROMOTED = True
 # command it will be inserted beside. Not providing the command to position it
 # will insert it at the end.
 WORKSPACE_ID = config.design_workspace
-TAB_ID = config.tools_tab_id
-TAB_NAME = config.my_tab_name
+TAB_ID = config.design_tab_id
+TAB_NAME = config.design_tab_name
 
-PANEL_ID = config.my_panel_id
-PANEL_NAME = config.my_panel_name
-PANEL_AFTER = config.my_panel_after
+PANEL_ID = config.create_panel_id
+PANEL_NAME = config.create_panel_name
+PANEL_AFTER = config.create_panel_after
 
 # Resource location for command icons, here we assume a sub folder in this directory named "resources".
 ICON_FOLDER = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'resources', '')
@@ -37,6 +37,11 @@ local_handlers = []
 
 # Executed when add-in is run.
 def start():
+    # check for existing command and kill it befor create new
+    existingDef = ui.commandDefinitions.itemById(CMD_ID)
+    if existingDef:
+        existingDef.deleteMe()
+        
     # Create a command Definition.
     cmd_def = ui.commandDefinitions.addButtonDefinition(CMD_ID, CMD_NAME, CMD_Description, ICON_FOLDER)
 
@@ -50,7 +55,6 @@ def start():
     # Get target toolbar tab for the command and create the tab if necessary.
     toolbar_tab = workspace.toolbarTabs.itemById(TAB_ID)
     if toolbar_tab is None:
-        ui.messageBox('Create new Toolbar Tab')
         toolbar_tab = workspace.toolbarTabs.add(TAB_ID, TAB_NAME)
         
     # Get the panel the button will be created in.
@@ -72,6 +76,7 @@ def stop():
     # Get the various UI elements for this command
     workspace = ui.workspaces.itemById(WORKSPACE_ID)
     panel = workspace.toolbarPanels.itemById(PANEL_ID)
+    toolbar_tab = workspace.toolbarTabs.itemById(TAB_ID)
     command_control = panel.controls.itemById(CMD_ID)
     command_definition = ui.commandDefinitions.itemById(CMD_ID)
 
@@ -83,6 +88,13 @@ def stop():
     if command_definition:
         command_definition.deleteMe()
 
+    # Delete the panel if it is empty
+    if panel.controls.count == 0:
+        panel.deleteMe()
+
+    # Delete the tab if it is empty
+    if toolbar_tab.toolbarPanels.count == 0:
+        toolbar_tab.deleteMe()
 
 # Function that is called when a user clicks the corresponding button in the UI.
 # This defines the contents of the command dialog and connects to the command related events.
@@ -90,37 +102,41 @@ def command_created(args: adsk.core.CommandCreatedEventArgs):
     # General logging for debug.
     futil.log(f'{CMD_NAME} Command Created Event')
 
-    profile_icons = os.path.join(ICON_FOLDER, 'profiles')
     # https://help.autodesk.com/view/fusion360/ENU/?contextId=CommandInputs
     inputs = args.command.commandInputs
 
     # TODO Define the dialog for your command by adding different inputs to the command.
 
-    # Create a simple text box input.
-    inputs.addTextBoxCommandInput('text_box', 'Some Text', 'Enter some text.', 1, False)
+    # Create the selector for the plane.
+    planeInput = inputs.addSelectionInput('planeSelect', 'Select Plane', 'Select Plane')
+    planeInput.addSelectionFilter('PlanarFaces')
+    planeInput.addSelectionFilter('ConstructionPlanes')
+    planeInput.setSelectionLimits(1,1)
 
-    # Create a value input field and set the default using 1 unit of the default length unit.
-    defaultLengthUnits = app.activeProduct.unitsManager.defaultLengthUnits
-    default_value = adsk.core.ValueInput.createByString('1')
-    inputs.addValueInput('value_input', 'Some Value', defaultLengthUnits, default_value)
-    
-    drop_down_style = adsk.core.DropDownStyles.LabeledIconDropDownStyle
-    drop_down_input = inputs.addDropDownCommandInput('selectProfil_Id', 'Profil', drop_down_style)
-    drop_down_items = drop_down_input.listItems
-    drop_down_items.add('40x40 leicht', True) #, './resources/upperLeft')
-    drop_down_items.add('40x40 schwer', False)
+    # Create the selector for the points.
+    pointInput = inputs.addSelectionInput('pointSelect', 'Select Points', 'Select Points')
+    pointInput.addSelectionFilter('Vertices')
+    pointInput.addSelectionFilter('ConstructionPoints')
+    pointInput.addSelectionFilter('SketchPoints')
+    pointInput.setSelectionLimits(1,0)
+    pointInput.isEnabled = False
 
-    drop_down_style = adsk.core.DropDownStyles.LabeledIconDropDownStyle
-    drop_down_input = inputs.addDropDownCommandInput('CreateAsBodyOrComponent_Id', 'Operation', drop_down_style)
-    drop_down_items = drop_down_input.listItems
-    drop_down_items.add('New Body', True)
-    drop_down_items.add('New Component', False)
+    # Create the list for types of shapes.
+    shapeList = inputs.addDropDownCommandInput('shapeList', 'Shape Type', adsk.core.DropDownStyles.LabeledIconDropDownStyle)
+    shapeList.listItems.add('Square', True, ICON_FOLDER + '/Square', -1)
+    shapeList.listItems.add('Circle', False, ICON_FOLDER + '/Circle', -1)
+    shapeList.listItems.add('Pentagon', False, ICON_FOLDER + '/Pentagon', -1)
+
+    initValue = adsk.core.ValueInput.createByString('10.0 cm')
+    distanceInput = inputs.addDistanceValueCommandInput('distanceInput', 'Distance', initValue)
+    distanceInput.isEnabled = False
+    distanceInput.isVisible = False
 
     # TODO Connect to the events that are needed by this command.
     futil.add_handler(args.command.execute, command_execute, local_handlers=local_handlers)
     futil.add_handler(args.command.inputChanged, command_input_changed, local_handlers=local_handlers)
     futil.add_handler(args.command.executePreview, command_preview, local_handlers=local_handlers)
-    futil.add_handler(args.command.validateInputs, command_validate_input, local_handlers=local_handlers)
+    #futil.add_handler(args.command.validateInputs, command_validate_input, local_handlers=local_handlers)
     futil.add_handler(args.command.destroy, command_destroy, local_handlers=local_handlers)
 
 
@@ -148,8 +164,47 @@ def command_execute(args: adsk.core.CommandEventArgs):
 def command_preview(args: adsk.core.CommandEventArgs):
     # General logging for debug.
     futil.log(f'{CMD_NAME} Command Preview Event')
-    inputs = args.command.commandInputs
+    # Code to react to the event.
+    try:
+        cmdArgs = adsk.core.CommandEventArgs.cast(args)
 
+        # Get the current value of inputs entered in the dialog.
+        inputs = args.command.commandInputs
+        result = getInput(inputs)
+        
+        # Draw the preview geometry.
+        drawGeometry(result[0], result[1], result[2], result[3])
+        
+        # Set this property indicating that the preview is a good
+        # result and can be used as the final result when the command
+        # is executed.
+        cmdArgs.isValidResult = True            
+    except:
+        app = adsk.core.Application.get()
+        ui = app.userInterface
+        ui.messageBox('Failed:\n{}'.format(traceback.format_exc()))   
+
+
+# Gets the current values from the command dialog.
+def getInput(inputs):
+    try:
+        for input in inputs:        
+            if input.id == 'planeSelect':
+                planeEnt = input.selection(0).entity
+            elif input.id == 'pointSelect':
+                pointEnts = adsk.core.ObjectCollection.create()
+                for i in range(0, input.selectionCount):
+                    pointEnts.add(input.selection(i).entity)
+            elif input.id == 'distanceInput':
+                size = input.value
+            elif input.id == 'shapeList':
+                shape = input.selectedItem.name
+                
+        return (planeEnt, pointEnts, shape, size)
+    except:
+        app = adsk.core.Application.get()
+        ui = app.userInterface
+        ui.messageBox('Failed:\n{}'.format(traceback.format_exc()))  
 
 # This event handler is called when the user changes anything in the command dialog
 # allowing you to modify values of other inputs based on that change.
@@ -159,6 +214,25 @@ def command_input_changed(args: adsk.core.InputChangedEventArgs):
 
     # General logging for debug.
     futil.log(f'{CMD_NAME} Input Changed Event fired from a change to {changed_input.id}')
+    
+    planeSelect: adsk.core.SelectionCommandInput = inputs.itemById('planeSelect')
+    distanceInput: adsk.core.DistanceValueCommandInput = inputs.itemById('distanceInput')
+    
+    # Show and update the distance input when a plane is selected
+    if changed_input.id == planeSelect.id:
+        if planeSelect.selectionCount > 0:
+            selection = planeSelect.selection(0)
+            selection_point = selection.point
+            selected_entity = selection.entity
+            plane = selected_entity.geometry
+
+            distanceInput.setManipulator(selection_point, plane.normal)
+            distanceInput.expression = "10mm * 2"
+            distanceInput.isEnabled = True
+            distanceInput.isVisible = True
+        else:
+            distanceInput.isEnabled = False
+            distanceInput.isVisible = False
 
 
 # This event handler is called when the user interacts with any of the inputs in the dialog
@@ -184,3 +258,73 @@ def command_destroy(args: adsk.core.CommandEventArgs):
 
     global local_handlers
     local_handlers = []
+ 
+# Draws the shapes based on the input argument.     
+def drawGeometry(planeEnt, pointEnts, shape, size):
+    try:
+        # Get the design.
+        app = adsk.core.Application.get()
+        des = adsk.fusion.Design.cast(app.activeProduct)
+        
+        # Create a new sketch plane.
+        sk = des.rootComponent.sketches.add(planeEnt)    
+        
+        for pntEnt in pointEnts:
+            # Project the point onto the sketch.
+            skPnt = sk.project(pntEnt).item(0)
+            
+            if shape == 'Square':
+                # Draw four lines to define a square.
+                skLines = sk.sketchCurves.sketchLines
+                line1 = skLines.addByTwoPoints(adsk.core.Point3D.create(skPnt.geometry.x - size/2, skPnt.geometry.y - size/2, 0), adsk.core.Point3D.create(skPnt.geometry.x + size/2, skPnt.geometry.y - size/2, 0))
+                line2 = skLines.addByTwoPoints(line1.endSketchPoint, adsk.core.Point3D.create(skPnt.geometry.x + size/2, skPnt.geometry.y + size/2, 0))
+                line3 = skLines.addByTwoPoints(line2.endSketchPoint, adsk.core.Point3D.create(skPnt.geometry.x - size/2, skPnt.geometry.y + size/2, 0))
+                line4 = skLines.addByTwoPoints(line3.endSketchPoint, line1.startSketchPoint)
+            elif shape == 'Circle':
+                # Draw a circle.
+                sk.sketchCurves.sketchCircles.addByCenterRadius(skPnt, size/2)
+            elif shape == 'Pentagon':
+                # Draw file lines to define a pentagon.
+                skLines = sk.sketchCurves.sketchLines
+                angle = math.pi/2
+                halfSize = size/2
+                x1 = halfSize * math.cos(angle)
+                y1 = halfSize * math.sin(angle)
+
+                angle += math.pi/2.5
+                x2 = halfSize * math.cos(angle)
+                y2 = halfSize * math.sin(angle)
+                line1 = skLines.addByTwoPoints(adsk.core.Point3D.create(x1 + skPnt.geometry.x, y1 + skPnt.geometry.y, 0), adsk.core.Point3D.create(x2 + skPnt.geometry.x, y2 + skPnt.geometry.y, 0))
+
+                angle += math.pi/2.5
+                x = halfSize * math.cos(angle)
+                y = halfSize * math.sin(angle)
+                line2 = skLines.addByTwoPoints(line1.endSketchPoint, adsk.core.Point3D.create(x + skPnt.geometry.x, y + skPnt.geometry.y, 0))
+
+                angle += math.pi/2.5
+                x = halfSize * math.cos(angle)
+                y = halfSize * math.sin(angle)
+                line3 = skLines.addByTwoPoints(line2.endSketchPoint, adsk.core.Point3D.create(x + skPnt.geometry.x, y + skPnt.geometry.y, 0))
+
+                angle += math.pi/2.5
+                x = halfSize * math.cos(angle)
+                y = halfSize * math.sin(angle)
+                line4 = skLines.addByTwoPoints(line3.endSketchPoint, adsk.core.Point3D.create(x + skPnt.geometry.x, y + skPnt.geometry.y, 0))
+                
+                line5 = skLines.addByTwoPoints(line4.endSketchPoint, line1.startSketchPoint)
+    
+        # Find the inner profiles (only those with one loop).
+        profiles = adsk.core.ObjectCollection.create()
+        for prof in sk.profiles:
+            if prof.profileLoops.count == 1:
+                profiles.add(prof)
+
+        # Create the extrude feature.            
+        input = des.rootComponent.features.extrudeFeatures.createInput(profiles, adsk.fusion.FeatureOperations.CutFeatureOperation)
+        input.setDistanceExtent(True, adsk.core.ValueInput.createByReal(10))
+        extrude = des.rootComponent.features.extrudeFeatures.add(input)
+    except:
+        app = adsk.core.Application.get()
+        ui = app.userInterface
+        ui.messageBox('Failed:\n{}'.format(traceback.format_exc()))    
+     

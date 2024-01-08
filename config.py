@@ -17,16 +17,23 @@ DEBUG = True
 ADDIN_NAME = os.path.basename(os.path.dirname(__file__))
 COMPANY_NAME = 'TManiac'
 
-# Palettes
-sample_palette_id = f'{COMPANY_NAME}_{ADDIN_NAME}_palette_id'
 
 # FIXME add good comments
 design_workspace = 'FusionSolidEnvironment'
+
+# Tabs
+design_tab_id = f'{ADDIN_NAME}_design_tab'
+design_tab_name = "Alu Profiles"
 
 tools_tab_id = "ToolsTab"
 my_tab_name = "Alu Profiles"  # Only used if creating a custom Tab
 
 # use any other name to build a new Tab
-my_panel_id = 'Alu Profiles'
-my_panel_name = 'Alu Profile Generator' #ADDIN_NAME
-my_panel_after = ''
+create_panel_name = 'Alu Profile Generator' #ADDIN_NAME
+create_panel_id = f'{ADDIN_NAME}_addins_panel'
+create_panel_after = ''
+
+addins_panel_name = 'ADD-INS'
+addins_panel_id = f'{ADDIN_NAME}_addins_panel'
+addins_panel_after = create_panel_id
+
