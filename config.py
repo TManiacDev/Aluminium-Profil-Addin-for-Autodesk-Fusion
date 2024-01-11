@@ -30,10 +30,15 @@ my_tab_name = "Alu Profiles"  # Only used if creating a custom Tab
 
 # use any other name to build a new Tab
 create_panel_name = 'Alu Profile Generator' #ADDIN_NAME
-create_panel_id = f'{ADDIN_NAME}_addins_panel'
+create_panel_id = f'{ADDIN_NAME}_profil_panel'
 create_panel_after = ''
 
 addins_panel_name = 'ADD-INS'
 addins_panel_id = f'{ADDIN_NAME}_addins_panel'
 addins_panel_after = create_panel_id
+
+help_panel_name = 'HELP'
+help_panel_id = f'{ADDIN_NAME}_help_panel'
+help_panel_after = addins_panel_id
+
 

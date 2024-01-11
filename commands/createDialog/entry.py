@@ -1,4 +1,4 @@
-import adsk.core
+import adsk.core, adsk.fusion 
 import os, math, traceback
 from ...lib import fusion360utils as futil
 from ... import config
@@ -118,13 +118,13 @@ def command_created(args: adsk.core.CommandCreatedEventArgs):
     pointInput.addSelectionFilter('Vertices')
     pointInput.addSelectionFilter('ConstructionPoints')
     pointInput.addSelectionFilter('SketchPoints')
-    pointInput.setSelectionLimits(1,0)
+    pointInput.setSelectionLimits(1,1)
     pointInput.isEnabled = False
 
     # Create the list for types of shapes.
     shapeList = inputs.addDropDownCommandInput('shapeList', 'Shape Type', adsk.core.DropDownStyles.LabeledIconDropDownStyle)
     shapeList.listItems.add('Square', True, ICON_FOLDER + '/Square', -1)
-    shapeList.listItems.add('Circle', False, ICON_FOLDER + '/Circle', -1)
+    shapeList.listItems.add('None', False, ICON_FOLDER + '/None', -1)
     shapeList.listItems.add('Pentagon', False, ICON_FOLDER + '/Pentagon', -1)
 
     initValue = adsk.core.ValueInput.createByString('10.0 cm')
@@ -265,6 +265,8 @@ def drawGeometry(planeEnt, pointEnts, shape, size):
         # Get the design.
         app = adsk.core.Application.get()
         des = adsk.fusion.Design.cast(app.activeProduct)
+
+        defaultSize = 40 / 10 # Angabe in mm in cm
         
         # Create a new sketch plane.
         sk = des.rootComponent.sketches.add(planeEnt)    
@@ -280,9 +282,6 @@ def drawGeometry(planeEnt, pointEnts, shape, size):
                 line2 = skLines.addByTwoPoints(line1.endSketchPoint, adsk.core.Point3D.create(skPnt.geometry.x + size/2, skPnt.geometry.y + size/2, 0))
                 line3 = skLines.addByTwoPoints(line2.endSketchPoint, adsk.core.Point3D.create(skPnt.geometry.x - size/2, skPnt.geometry.y + size/2, 0))
                 line4 = skLines.addByTwoPoints(line3.endSketchPoint, line1.startSketchPoint)
-            elif shape == 'Circle':
-                # Draw a circle.
-                sk.sketchCurves.sketchCircles.addByCenterRadius(skPnt, size/2)
             elif shape == 'Pentagon':
                 # Draw file lines to define a pentagon.
                 skLines = sk.sketchCurves.sketchLines
@@ -313,6 +312,40 @@ def drawGeometry(planeEnt, pointEnts, shape, size):
                 
                 line5 = skLines.addByTwoPoints(line4.endSketchPoint, line1.startSketchPoint)
     
+            else: 
+                # in any other case we create a profile without a slice
+                skLines = sk.sketchCurves.sketchLines
+                sketchArcs = sk.sketchCurves.sketchArcs 
+                arcRadius = size / 10            
+
+                point_1 = adsk.core.Point3D.create(skPnt.geometry.x - size/2 + arcRadius, skPnt.geometry.y + size/2, 0)
+
+                arcCenter = adsk.core.Point3D.create(skPnt.geometry.x - size/2 + arcRadius, skPnt.geometry.y + size/2 - arcRadius , 0)
+                arc1 = sketchArcs.addByCenterStartSweep(arcCenter,point_1,math.radians(90))
+
+                point_2 = adsk.core.Point3D.create(skPnt.geometry.x - size/2, skPnt.geometry.y - size/2 + arcRadius, 0)
+                line1 = skLines.addByTwoPoints(arc1.endSketchPoint,point_2)
+
+                arcCenter = adsk.core.Point3D.create(skPnt.geometry.x - size/2 + arcRadius, skPnt.geometry.y - size/2 + arcRadius , 0)
+                arc2 = sketchArcs.addByCenterStartSweep(arcCenter,line1.endSketchPoint,math.radians(90))
+                
+                point_3 = adsk.core.Point3D.create(skPnt.geometry.x + size/2 - arcRadius, skPnt.geometry.y - size/2, 0)
+                line2 = skLines.addByTwoPoints(arc2.endSketchPoint, point_3)
+
+                arcCenter = adsk.core.Point3D.create(skPnt.geometry.x + size/2 - arcRadius, skPnt.geometry.y - size/2 + arcRadius , 0)
+                arc3 = sketchArcs.addByCenterStartSweep(arcCenter,line2.endSketchPoint,math.radians(90))
+
+                point_4 = adsk.core.Point3D.create(skPnt.geometry.x + size/2, skPnt.geometry.y + size/2 - arcRadius, 0)
+                line3 = skLines.addByTwoPoints(arc3.endSketchPoint, point_4)
+
+                arcCenter = adsk.core.Point3D.create(skPnt.geometry.x + size/2 - arcRadius, skPnt.geometry.y + size/2 - arcRadius , 0)
+                arc4 = sketchArcs.addByCenterStartSweep(arcCenter,line3.endSketchPoint,math.radians(90))
+
+                line4 = skLines.addByTwoPoints(arc4.endSketchPoint, arc1.startSketchPoint)
+
+                
+                #thirdPoint = adsk.core.Point3D.create(skPnt.geometry.x + size/2, skPnt.geometry.y + size/2, 0)
+
         # Find the inner profiles (only those with one loop).
         profiles = adsk.core.ObjectCollection.create()
         for prof in sk.profiles:
@@ -320,7 +353,7 @@ def drawGeometry(planeEnt, pointEnts, shape, size):
                 profiles.add(prof)
 
         # Create the extrude feature.            
-        input = des.rootComponent.features.extrudeFeatures.createInput(profiles, adsk.fusion.FeatureOperations.CutFeatureOperation)
+        input = des.rootComponent.features.extrudeFeatures.createInput(profiles, adsk.fusion.FeatureOperations.NewBodyFeatureOperation)
         input.setDistanceExtent(True, adsk.core.ValueInput.createByReal(10))
         extrude = des.rootComponent.features.extrudeFeatures.add(input)
     except:
