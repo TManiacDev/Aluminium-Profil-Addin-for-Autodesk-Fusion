@@ -122,15 +122,25 @@ def command_created(args: adsk.core.CommandCreatedEventArgs):
     pointInput.isEnabled = False
 
     # Create the list for types of shapes.
-    shapeList = inputs.addDropDownCommandInput('shapeList', 'Shape Type', adsk.core.DropDownStyles.LabeledIconDropDownStyle)
+    shapeList = inputs.addDropDownCommandInput('shapeList', 'Slot Type', adsk.core.DropDownStyles.LabeledIconDropDownStyle)
     shapeList.listItems.add('Square', True, ICON_FOLDER + '/Square', -1)
     shapeList.listItems.add('None', False, ICON_FOLDER + '/None', -1)
     shapeList.listItems.add('Pentagon', False, ICON_FOLDER + '/Pentagon', -1)
+
+    sizeSpinner = inputs.addIntegerSpinnerCommandInput('sizeSpinner', 'Profile Size' , 10, 100, 5, 40)
+    slotSizeSpinner = inputs.addIntegerSpinnerCommandInput('slotSizeSpinner', 'Slot Size' , 4, 10, 2, 8)
 
     initValue = adsk.core.ValueInput.createByString('10.0 cm')
     distanceInput = inputs.addDistanceValueCommandInput('distanceInput', 'Distance', initValue)
     distanceInput.isEnabled = False
     distanceInput.isVisible = False
+
+    # Create the list for dircetion type.
+    app.log('Icon Folder: ' + config.FUSION_UI_RESOURCES_FOLDER)
+    dircetTypeList = inputs.addDropDownCommandInput('directTypeList', 'Direction', adsk.core.DropDownStyles.LabeledIconDropDownStyle)
+    dircetTypeList.listItems.add('One Side', True, config.FUSION_UI_RESOURCES_FOLDER + '/Modeling/LeftSide', -1)
+    dircetTypeList.listItems.add('Both Side', False, config.FUSION_UI_RESOURCES_FOLDER + '/Modeling/BothSide', -1)
+    dircetTypeList.listItems.add('Symetric', False, config.FUSION_UI_RESOURCES_FOLDER + '/Modeling/Symmetric', -1)
 
     # TODO Connect to the events that are needed by this command.
     futil.add_handler(args.command.execute, command_execute, local_handlers=local_handlers)

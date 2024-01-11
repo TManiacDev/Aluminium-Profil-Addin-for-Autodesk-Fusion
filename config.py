@@ -17,6 +17,9 @@ DEBUG = True
 ADDIN_NAME = os.path.basename(os.path.dirname(__file__))
 COMPANY_NAME = 'TManiac'
 
+ICON_GLOBAL_FOLDER = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'resources\icons', '')
+FUSION_UI_RESOURCES_FOLDER = os.getenv('LOCALAPPDATA') + '/Autodesk/webdeploy/production/b0c303e70bd97cfdc195adab65922cfeffcb363a/Fusion/UI/FusionUI/Resources'
+
 
 # FIXME add good comments
 design_workspace = 'FusionSolidEnvironment'
