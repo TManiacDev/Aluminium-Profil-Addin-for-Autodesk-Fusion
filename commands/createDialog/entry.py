@@ -1,6 +1,7 @@
 import adsk.core, adsk.fusion 
 import os, math, traceback
 from ...lib import fusion360utils as futil
+from . import dialog_IDs as dialogID
 from ... import config
 app = adsk.core.Application.get()
 ui = app.userInterface
@@ -108,13 +109,13 @@ def command_created(args: adsk.core.CommandCreatedEventArgs):
     # TODO Define the dialog for your command by adding different inputs to the command.
 
     # Create the selector for the plane.
-    planeInput = inputs.addSelectionInput('planeSelect', 'Select Plane', 'Select Plane')
+    planeInput = inputs.addSelectionInput(dialogID.planeSelect, 'Select Plane', 'Select Plane')
     planeInput.addSelectionFilter('PlanarFaces')
     planeInput.addSelectionFilter('ConstructionPlanes')
     planeInput.setSelectionLimits(1,1)
 
     # Create the selector for the points.
-    pointInput = inputs.addSelectionInput('pointSelect', 'Select Points', 'Select Points')
+    pointInput = inputs.addSelectionInput(dialogID.pointSelect, 'Select Points', 'Select Points')
     pointInput.addSelectionFilter('Vertices')
     pointInput.addSelectionFilter('ConstructionPoints')
     pointInput.addSelectionFilter('SketchPoints')
@@ -122,22 +123,22 @@ def command_created(args: adsk.core.CommandCreatedEventArgs):
     pointInput.isEnabled = False
 
     # Create the list for types of shapes.
-    shapeList = inputs.addDropDownCommandInput('shapeList', 'Slot Type', adsk.core.DropDownStyles.LabeledIconDropDownStyle)
-    shapeList.listItems.add('Square', True, ICON_FOLDER + '/Square', -1)
-    shapeList.listItems.add('None', False, ICON_FOLDER + '/None', -1)
+    shapeList = inputs.addDropDownCommandInput(dialogID.shapeList, 'Slot Type', adsk.core.DropDownStyles.LabeledIconDropDownStyle)
+    shapeList.listItems.add('I-Type 8', True, ICON_FOLDER + '/Square', -1)
+    shapeList.listItems.add('None', True, ICON_FOLDER + '/None', -1)
     shapeList.listItems.add('Pentagon', False, ICON_FOLDER + '/Pentagon', -1)
 
-    sizeSpinner = inputs.addIntegerSpinnerCommandInput('sizeSpinner', 'Profile Size' , 10, 100, 5, 40)
-    slotSizeSpinner = inputs.addIntegerSpinnerCommandInput('slotSizeSpinner', 'Slot Size' , 4, 10, 2, 8)
+    sizeSpinner = inputs.addIntegerSpinnerCommandInput(dialogID.sizeSpinner, 'Profile Size' , 10, 100, 5, 40)
+    slotSizeSpinner = inputs.addIntegerSpinnerCommandInput(dialogID.slotSizeSpinner, 'Slot Size' , 4, 10, 2, 8)
 
     initValue = adsk.core.ValueInput.createByString('10.0 cm')
-    distanceInput = inputs.addDistanceValueCommandInput('distanceInput', 'Distance', initValue)
+    distanceInput = inputs.addDistanceValueCommandInput(dialogID.distanceInput, 'Distance', initValue)
     distanceInput.isEnabled = False
     distanceInput.isVisible = False
 
     # Create the list for dircetion type.
     app.log('Icon Folder: ' + config.FUSION_UI_RESOURCES_FOLDER)
-    dircetTypeList = inputs.addDropDownCommandInput('directTypeList', 'Direction', adsk.core.DropDownStyles.LabeledIconDropDownStyle)
+    dircetTypeList = inputs.addDropDownCommandInput(dialogID.directionTypeList, 'Direction', adsk.core.DropDownStyles.LabeledIconDropDownStyle)
     dircetTypeList.listItems.add('One Side', True, config.FUSION_UI_RESOURCES_FOLDER + '/Modeling/LeftSide', -1)
     dircetTypeList.listItems.add('Both Side', False, config.FUSION_UI_RESOURCES_FOLDER + '/Modeling/BothSide', -1)
     dircetTypeList.listItems.add('Symetric', False, config.FUSION_UI_RESOURCES_FOLDER + '/Modeling/Symmetric', -1)
@@ -180,10 +181,27 @@ def command_preview(args: adsk.core.CommandEventArgs):
 
         # Get the current value of inputs entered in the dialog.
         inputs = args.command.commandInputs
-        result = getInput(inputs)
+
+        #  getInput
+        
+        for input in inputs:        
+            if input.id == dialogID.planeSelect:
+                planeEnt = input.selection(0).entity
+            elif input.id == dialogID.pointSelect:
+                pointEnts = adsk.core.ObjectCollection.create()
+                for i in range(0, input.selectionCount):
+                    pointEnts.add(input.selection(i).entity)
+            elif input.id == dialogID.sizeSpinner:
+                size = input.value
+            elif input.id == dialogID.distanceInput:
+                length = input.value
+            elif input.id == dialogID.shapeList:
+                shape = input.selectedItem.name
+            elif input.id == dialogID.directionTypeList:
+                direction = input.selectedItem.name
         
         # Draw the preview geometry.
-        drawGeometry(result[0], result[1], result[2], result[3])
+        drawGeometry(planeEnt , pointEnts, shape, size, length, direction)
         
         # Set this property indicating that the preview is a good
         # result and can be used as the final result when the command
@@ -194,28 +212,6 @@ def command_preview(args: adsk.core.CommandEventArgs):
         ui = app.userInterface
         ui.messageBox('Failed:\n{}'.format(traceback.format_exc()))   
 
-
-# Gets the current values from the command dialog.
-def getInput(inputs):
-    try:
-        for input in inputs:        
-            if input.id == 'planeSelect':
-                planeEnt = input.selection(0).entity
-            elif input.id == 'pointSelect':
-                pointEnts = adsk.core.ObjectCollection.create()
-                for i in range(0, input.selectionCount):
-                    pointEnts.add(input.selection(i).entity)
-            elif input.id == 'distanceInput':
-                size = input.value
-            elif input.id == 'shapeList':
-                shape = input.selectedItem.name
-                
-        return (planeEnt, pointEnts, shape, size)
-    except:
-        app = adsk.core.Application.get()
-        ui = app.userInterface
-        ui.messageBox('Failed:\n{}'.format(traceback.format_exc()))  
-
 # This event handler is called when the user changes anything in the command dialog
 # allowing you to modify values of other inputs based on that change.
 def command_input_changed(args: adsk.core.InputChangedEventArgs):
@@ -225,8 +221,8 @@ def command_input_changed(args: adsk.core.InputChangedEventArgs):
     # General logging for debug.
     futil.log(f'{CMD_NAME} Input Changed Event fired from a change to {changed_input.id}')
     
-    planeSelect: adsk.core.SelectionCommandInput = inputs.itemById('planeSelect')
-    distanceInput: adsk.core.DistanceValueCommandInput = inputs.itemById('distanceInput')
+    planeSelect: adsk.core.SelectionCommandInput = inputs.itemById(dialogID.planeSelect)
+    distanceInput: adsk.core.DistanceValueCommandInput = inputs.itemById(dialogID.distanceInput)
     
     # Show and update the distance input when a plane is selected
     if changed_input.id == planeSelect.id:
@@ -237,7 +233,7 @@ def command_input_changed(args: adsk.core.InputChangedEventArgs):
             plane = selected_entity.geometry
 
             distanceInput.setManipulator(selection_point, plane.normal)
-            distanceInput.expression = "10mm * 2"
+            distanceInput.expression = "10mm"
             distanceInput.isEnabled = True
             distanceInput.isVisible = True
         else:
@@ -270,7 +266,7 @@ def command_destroy(args: adsk.core.CommandEventArgs):
     local_handlers = []
  
 # Draws the shapes based on the input argument.     
-def drawGeometry(planeEnt, pointEnts, shape, size):
+def drawGeometry(planeEnt, pointEnts, shape, size, length, direction):
     try:
         # Get the design.
         app = adsk.core.Application.get()
@@ -364,8 +360,22 @@ def drawGeometry(planeEnt, pointEnts, shape, size):
 
         # Create the extrude feature.            
         input = des.rootComponent.features.extrudeFeatures.createInput(profiles, adsk.fusion.FeatureOperations.NewBodyFeatureOperation)
-        input.setDistanceExtent(True, adsk.core.ValueInput.createByReal(10))
-        extrude = des.rootComponent.features.extrudeFeatures.add(input)
+        extrudes = des.rootComponent.features.extrudeFeatures
+        distanceValue = adsk.core.ValueInput.createByReal(length)
+        
+        # Extrude Sample 2: Create an extrusion that goes from the profile plane with one side distance extent
+        extrudeInput = extrudes.createInput(prof, adsk.fusion.FeatureOperations.NewBodyFeatureOperation)
+        # Create a distance extent definition       
+        extent_distance = adsk.fusion.DistanceExtentDefinition.create(distanceValue) 
+        if direction == 'One Side':
+            extrudeInput.setOneSideExtent(extent_distance, adsk.fusion.ExtentDirections.PositiveExtentDirection)
+            # Create the extrusion
+            extrude2 = extrudes.add(extrudeInput)
+        elif direction == 'Symetric':
+            extrudeInput.setSymmetricExtent(distanceValue, True)
+            # Create the extrusion
+            extrude2 = extrudes.add(extrudeInput)
+
     except:
         app = adsk.core.Application.get()
         ui = app.userInterface
