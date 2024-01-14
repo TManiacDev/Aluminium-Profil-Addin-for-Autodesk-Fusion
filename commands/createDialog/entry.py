@@ -147,7 +147,7 @@ def command_created(args: adsk.core.CommandCreatedEventArgs):
     futil.add_handler(args.command.execute, command_execute, local_handlers=local_handlers)
     futil.add_handler(args.command.inputChanged, command_input_changed, local_handlers=local_handlers)
     futil.add_handler(args.command.executePreview, command_preview, local_handlers=local_handlers)
-    #futil.add_handler(args.command.validateInputs, command_validate_input, local_handlers=local_handlers)
+    futil.add_handler(args.command.validateInputs, command_validate_input, local_handlers=local_handlers)
     futil.add_handler(args.command.destroy, command_destroy, local_handlers=local_handlers)
 
 
@@ -165,10 +165,11 @@ def command_execute(args: adsk.core.CommandEventArgs):
     value_input: adsk.core.ValueCommandInput = inputs.itemById('value_input')
 
     # Do something interesting
-    text = text_box.text
-    expression = value_input.expression
-    msg = f'Your text: {text}<br>Your value: {expression}'
-    ui.messageBox(msg)
+    app.log(' execute create command: Create the custom feature')
+    # Create the custom feature input.
+    #des: adsk.fusion.Design = _app.activeProduct
+    #defLengthUnits = des.unitsManager.defaultLengthUnits
+    #custFeatInput = comp.features.customFeatures.createInput(_customFeatureDef)
 
 
 # This event handler is called when the command needs to compute a new preview in the graphics window.
@@ -206,7 +207,8 @@ def command_preview(args: adsk.core.CommandEventArgs):
         # Set this property indicating that the preview is a good
         # result and can be used as the final result when the command
         # is executed.
-        cmdArgs.isValidResult = True            
+        # this will skip the execute handler 
+        #cmdArgs.isValidResult = True            
     except:
         app = adsk.core.Application.get()
         ui = app.userInterface
@@ -245,16 +247,18 @@ def command_input_changed(args: adsk.core.InputChangedEventArgs):
 # which allows you to verify that all of the inputs are valid and enables the OK button.
 def command_validate_input(args: adsk.core.ValidateInputsEventArgs):
     # General logging for debug.
-    futil.log(f'{CMD_NAME} Validate Input Event')
+    #futil.log(f'{CMD_NAME} Validate Input Event')
 
     inputs = args.inputs
     
     # Verify the validity of the input values. This controls if the OK button is enabled or not.
-    valueInput = inputs.itemById('value_input')
+    valueInput = inputs.itemById(dialogID.distanceInput)
     if valueInput.value >= 0:
         args.areInputsValid = True
+        futil.log(f'{CMD_NAME} Validate Input Event is True')
     else:
         args.areInputsValid = False
+        futil.log(f'{CMD_NAME} Validate Input Event is False')
         
 
 # This event handler is called when the command terminates.

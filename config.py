@@ -20,6 +20,9 @@ COMPANY_NAME = 'TManiac'
 ICON_GLOBAL_FOLDER = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'resources\icons', '')
 FUSION_UI_RESOURCES_FOLDER = os.getenv('LOCALAPPDATA') + '/Autodesk/webdeploy/production/b0c303e70bd97cfdc195adab65922cfeffcb363a/Fusion/UI/FusionUI/Resources'
 
+# custom feature naming
+aluProfileFeature_id = f'{COMPANY_NAME}_{ADDIN_NAME}_FeatureId'
+aluProfileFeature_name = 'Alu Profile Feature'
 
 # FIXME add good comments
 design_workspace = 'FusionSolidEnvironment'
@@ -40,6 +43,10 @@ create_panel_after = ''
 edit_panel_name = create_panel_name
 edit_panel_id = create_panel_id
 edit_panel_after = create_panel_after
+
+edit_CMD_ID = f'{COMPANY_NAME}_{ADDIN_NAME}_editDialog'
+edit_CMD_NAME = 'Command Dialog Sample'
+edit_CMD_Description = 'A Fusion 360 Add-in Command with a dialog'
 
 addins_panel_name = 'ADD-INS'
 addins_panel_id = f'{ADDIN_NAME}_addins_panel'

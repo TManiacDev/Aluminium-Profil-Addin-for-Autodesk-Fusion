@@ -7,9 +7,9 @@ ui = app.userInterface
 
 
 # TODO *** Specify the command identity information. ***
-CMD_ID = f'{config.COMPANY_NAME}_{config.ADDIN_NAME}_cmdDialog'
-CMD_NAME = 'Command Dialog Sample'
-CMD_Description = 'A Fusion 360 Add-in Command with a dialog'
+CMD_ID = config.edit_CMD_ID
+CMD_NAME = config.edit_CMD_NAME
+CMD_Description = config.edit_CMD_Description
 
 # Specify that the command will be promoted to the panel.
 IS_PROMOTED = True
