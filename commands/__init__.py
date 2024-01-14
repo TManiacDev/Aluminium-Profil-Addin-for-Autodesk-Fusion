@@ -3,8 +3,6 @@
 # TODO Import the modules corresponding to the commands you created.
 # If you want to add an additional command, duplicate one of the existing directories and import it here.
 # You need to use aliases (import "entry" as "my_module") assuming you have the default module named "entry".
-from .editDialog import entry as editDialog
-from .createDialog import entry as createDialog
 
 from .addins import existing, folder
 from .help import api, chm, github
@@ -12,9 +10,6 @@ from .help import api, chm, github
 # TODO add your imported modules to this list.
 # Fusion will automatically call the start() and stop() functions.
 commands = [
-    #createDialog,
-    #editDialog,
-
     existing, folder,
     api, chm, github
 ]

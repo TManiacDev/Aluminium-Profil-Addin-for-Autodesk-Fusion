@@ -252,6 +252,7 @@ def command_input_changed(args: adsk.core.InputChangedEventArgs):
     futil.log(f'{featureConfig.FEATURE_NAME} Input Changed Event fired from a change to {changed_input.id}')
     
     planeSelect: adsk.core.SelectionCommandInput = inputs.itemById(dialogID.planeSelect)
+    pointSelect: adsk.core.SelectionCommandInput = inputs.itemById(dialogID.pointSelect)
     distanceInput: adsk.core.DistanceValueCommandInput = inputs.itemById(dialogID.distanceInput)
     
     # Show and update the distance input when a plane is selected
@@ -260,8 +261,13 @@ def command_input_changed(args: adsk.core.InputChangedEventArgs):
             selection = planeSelect.selection(0)
             selection_point = selection.point
             selected_entity = selection.entity
-            plane = selected_entity.geometry
+            pointSelect.hasFocus = True
 
+
+    if changed_input.id == pointSelect.id:
+        if pointSelect.selectionCount > 0:
+            plane = planeSelect.selection(0).entity.geometry
+            selection_point = pointSelect.selection(0).entity.geometry
             distanceInput.setManipulator(selection_point, plane.normal)
             distanceInput.expression = "10mm"
             distanceInput.isEnabled = True
@@ -269,6 +275,7 @@ def command_input_changed(args: adsk.core.InputChangedEventArgs):
         else:
             distanceInput.isEnabled = False
             distanceInput.isVisible = False
+
 
 
 # This event handler is called when the user interacts with any of the inputs in the dialog
