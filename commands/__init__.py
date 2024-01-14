@@ -12,8 +12,8 @@ from .help import api, chm, github
 # TODO add your imported modules to this list.
 # Fusion will automatically call the start() and stop() functions.
 commands = [
-    createDialog,
-    editDialog,
+    #createDialog,
+    #editDialog,
 
     existing, folder,
     api, chm, github

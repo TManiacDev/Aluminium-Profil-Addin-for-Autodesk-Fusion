@@ -1,9 +1,9 @@
 
 # collection of used IDs to build up the dialog
-planeSelect = 'planeSelect_Id'
-pointSelect = 'pointSelect_Id'
-shapeList ='shapeList_Id'
-sizeSpinner = 'sizeSpinner_Id'
-slotSizeSpinner = 'slotSizeSpinner_Id'
-distanceInput = 'distanceInput_Id'
-directionTypeList = 'directTypeList_Id'
+planeSelect = 'old_'+'planeSelect_Id'
+pointSelect = 'old_'+'pointSelect_Id'
+shapeList ='old_'+'shapeList_Id'
+sizeSpinner = 'old_'+'sizeSpinner_Id'
+slotSizeSpinner = 'old_'+'slotSizeSpinner_Id'
+distanceInput = 'old_'+'distanceInput_Id'
+directionTypeList = 'old_'+'directTypeList_Id'
