@@ -322,8 +322,12 @@ def drawGeometry(planeEnt, pointEnts, shape, size, length, direction):
                 # in any other case we create a profile without a slice
                 skLines = sk.sketchCurves.sketchLines
                 sketchArcs = sk.sketchCurves.sketchArcs 
-                arcRadius = size / 10            
-
+                sketchDimensions = sk.sketchDimensions
+                sketchConstraints = sk.geometricConstraints
+                arcRadius = size / 10           
+                sk.name = 'Profile Sketch'
+                sk.attributes.add('sketchStyle', 'quarterSketch', 'True')
+                """
                 point_1 = adsk.core.Point3D.create(skPnt.geometry.x - size/2 + arcRadius, skPnt.geometry.y + size/2, 0)
 
                 arcCenter = adsk.core.Point3D.create(skPnt.geometry.x - size/2 + arcRadius, skPnt.geometry.y + size/2 - arcRadius , 0)
@@ -348,6 +352,33 @@ def drawGeometry(planeEnt, pointEnts, shape, size, length, direction):
                 arc4 = sketchArcs.addByCenterStartSweep(arcCenter,line3.endSketchPoint,math.radians(90))
 
                 line4 = skLines.addByTwoPoints(arc4.endSketchPoint, arc1.startSketchPoint)
+                """
+                # we use quarte as sketch
+
+                point_center_h = adsk.core.Point3D.create(skPnt.geometry.x + size/2, 0, 0)
+                horizontalCenterLine = skLines.addByTwoPoints(sk.originPoint,point_center_h)
+                horizontalCenterLine.isCenterLine = True
+                sketchConstraints.addHorizontal(horizontalCenterLine)
+
+                point_out_v = adsk.core.Point3D.create(skPnt.geometry.x + size/2, skPnt.geometry.x + size/2 - arcRadius, 0)
+                outerVerticalLine = skLines.addByTwoPoints(horizontalCenterLine.endSketchPoint,point_out_v)
+                arcCenter = adsk.core.Point3D.create(skPnt.geometry.x + size/2 - arcRadius, skPnt.geometry.y + size/2 - arcRadius , 0)
+                arc = sketchArcs.addByCenterStartSweep(arcCenter,outerVerticalLine.endSketchPoint,math.radians(90))
+                point_out_h = adsk.core.Point3D.create(0, skPnt.geometry.x + size/2, 0)
+                outerHorizontalLine = skLines.addByTwoPoints(arc.endSketchPoint,point_out_h)
+                verticalCenterLine = skLines.addByTwoPoints(outerHorizontalLine.endSketchPoint,sk.originPoint)
+                verticalCenterLine.isCenterLine = True
+                sketchConstraints.addVertical(verticalCenterLine)
+
+                sketchConstraints.addTangent(outerVerticalLine, arc)
+                sketchConstraints.addTangent(arc, outerHorizontalLine)
+
+                textPoint = adsk.core.Point3D.create(-5,5,0) 
+                dimSize = sketchDimensions.addOffsetDimension(horizontalCenterLine, outerHorizontalLine, textPoint)
+                textPoint = adsk.core.Point3D.create(5,-5,0)
+                dimSize = sketchDimensions.addOffsetDimension(outerVerticalLine, verticalCenterLine, textPoint)
+                textPoint = adsk.core.Point3D.create(horizontalCenterLine.endSketchPoint.geometry.x,verticalCenterLine.startSketchPoint.geometry.y,0)
+                dimArc = sketchDimensions.addRadialDimension(arc,textPoint)
 
                 
                 #thirdPoint = adsk.core.Point3D.create(skPnt.geometry.x + size/2, skPnt.geometry.y + size/2, 0)

@@ -17,7 +17,7 @@ from ...lib import fusion360utils as futil
 app = adsk.core.Application.get()
 ui = app.userInterface
 
-CMD_IDS = ['ScriptsManagerCommand', 'ExchangeAppStoreCommand']
+CMD_IDS = ['ChangeParameterCommand','ScriptsManagerCommand', 'ExchangeAppStoreCommand']
 IS_PROMOTED = True
 
 WORKSPACE_ID = config.design_workspace
@@ -47,7 +47,7 @@ def start():
         cmd_def = ui.commandDefinitions.itemById(cmd_id)
         control = panel.controls.addCommand(cmd_def)
         control.isPromoted = IS_PROMOTED
-        IS_PROMOTED = False
+        #IS_PROMOTED = False
 
 
 def stop():
