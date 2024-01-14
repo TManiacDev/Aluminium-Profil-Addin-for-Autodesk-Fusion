@@ -2,11 +2,15 @@
 from . import commands
 from .lib import fusion360utils as futil
 
+from .aluProfileFeature import commands as aluFeature
+
 
 def run(context):
     try:
         # This will run the start function in each of your commands as defined in commands/__init__.py
         commands.start()
+
+        aluFeature.start()
 
     except:
         futil.handle_error('run')
