@@ -32,13 +32,18 @@ tools_tab_id = "ToolsTab"
 my_tab_name = "Alu Profiles"  # Only used if creating a custom Tab
 
 # use any other name to build a new Tab
-create_panel_name = 'Alu Profile Generator' #ADDIN_NAME
+create_panel_name = 'Alu Profile' #ADDIN_NAME
 create_panel_id = f'{ADDIN_NAME}_profil_panel'
 create_panel_after = ''
 
+# the edit uses the same panel like the create
+edit_panel_name = create_panel_name
+edit_panel_id = create_panel_id
+edit_panel_after = create_panel_after
+
 addins_panel_name = 'ADD-INS'
 addins_panel_id = f'{ADDIN_NAME}_addins_panel'
-addins_panel_after = create_panel_id
+addins_panel_after = edit_panel_id
 
 help_panel_name = 'HELP'
 help_panel_id = f'{ADDIN_NAME}_help_panel'

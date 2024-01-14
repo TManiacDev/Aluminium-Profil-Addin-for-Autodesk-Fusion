@@ -18,9 +18,13 @@ IS_PROMOTED = True
 # This is done by specifying the workspace, the tab, and the panel, and the 
 # command it will be inserted beside. Not providing the command to position it
 # will insert it at the end.
-WORKSPACE_ID = 'FusionSolidEnvironment'
-PANEL_ID = 'SolidScriptsAddinsPanel'
-COMMAND_BESIDE_ID = 'ScriptsManagerCommand'
+WORKSPACE_ID = config.design_workspace
+TAB_ID = config.design_tab_id
+TAB_NAME = config.design_tab_name
+
+PANEL_ID = config.edit_panel_id
+PANEL_NAME = config.edit_panel_name
+PANEL_AFTER = config.edit_panel_after
 
 # Resource location for command icons, here we assume a sub folder in this directory named "resources".
 ICON_FOLDER = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'resources', '')
@@ -32,6 +36,11 @@ local_handlers = []
 
 # Executed when add-in is run.
 def start():
+    # check for existing command and kill it befor create new
+    existingDef = ui.commandDefinitions.itemById(CMD_ID)
+    if existingDef:
+        existingDef.deleteMe()
+        
     # Create a command Definition.
     cmd_def = ui.commandDefinitions.addButtonDefinition(CMD_ID, CMD_NAME, CMD_Description, ICON_FOLDER)
 
@@ -42,11 +51,20 @@ def start():
     # Get the target workspace the button will be created in.
     workspace = ui.workspaces.itemById(WORKSPACE_ID)
 
+    # Get target toolbar tab for the command and create the tab if necessary.
+    toolbar_tab = workspace.toolbarTabs.itemById(TAB_ID)
+    if toolbar_tab is None:
+        toolbar_tab = workspace.toolbarTabs.add(TAB_ID, TAB_NAME)
+        
     # Get the panel the button will be created in.
-    panel = workspace.toolbarPanels.itemById(PANEL_ID)
+    #panel = workspace.toolbarPanels.itemById(PANEL_ID)
+    # Get target panel for the command and and create the panel if necessary.
+    panel = toolbar_tab.toolbarPanels.itemById(PANEL_ID)
+    if panel is None:
+        panel = toolbar_tab.toolbarPanels.add(PANEL_ID, PANEL_NAME, PANEL_AFTER, False)
 
     # Create the button command control in the UI after the specified existing command.
-    control = panel.controls.addCommand(cmd_def, COMMAND_BESIDE_ID, False)
+    control = panel.controls.addCommand(cmd_def)
 
     # Specify if the command is promoted to the main toolbar. 
     control.isPromoted = IS_PROMOTED
