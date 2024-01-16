@@ -1,4 +1,4 @@
-import adsk.core, adsk.fusion, traceback
+import adsk.core, adsk.fusion
 import os, math, traceback 
 from ...lib import fusion360utils as futil 
 
@@ -6,6 +6,7 @@ from .. import config as featureConfig
 from ... import config as addinConfig
 
 from . import dialog_IDs as dialogID
+from .. import manageFeature as myFeature
 
 # Resource location for command icons, here we assume a sub folder in this directory named "resources". 
 ICON_FOLDER = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'resources', '') 
@@ -15,7 +16,12 @@ PROFILE_FOLDER = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'resou
 # they are not released and garbage collected. 
 local_handlers = [] 
 
-def startCreate(ui: adsk.core.UserInterface) -> adsk.core.CommandDefinition:
+_uiForEdit: adsk.core.UserInterface = None
+_editedCustomFeature: adsk.fusion.CustomFeature = None
+_restoreTimelineObject: adsk.fusion.TimelineObject = None
+_isRolledForEdit = False
+
+def startCreateCommand(ui: adsk.core.UserInterface) -> adsk.core.CommandDefinition:
     """ create the entry for the create command """
     
     # check for existing command and kill it befor create new
@@ -26,7 +32,7 @@ def startCreate(ui: adsk.core.UserInterface) -> adsk.core.CommandDefinition:
     createCmdDef = ui.commandDefinitions.addButtonDefinition(featureConfig.CREATE_CMD_ID, featureConfig.CREATE_CMD_NAME, featureConfig.CREATE_CMD_Description, ICON_FOLDER)
     
     # Define an event handler for the command created event. It will be called when the button is clicked. 
-    futil.add_handler(createCmdDef.commandCreated, command_created) 
+    futil.add_handler(createCmdDef.commandCreated, createCommand_created) 
  
     # ******** Add a button into the UI so the user can run the command. ******** 
     # Get the target workspace the button will be created in. 
@@ -53,7 +59,7 @@ def startCreate(ui: adsk.core.UserInterface) -> adsk.core.CommandDefinition:
 
     return createCmdDef
 
-def stopCreate(ui: adsk.core.UserInterface):
+def stopCreateCommand(ui: adsk.core.UserInterface):
     """ Stopping the create command """
      # Get the various UI elements for this command 
     workspace = ui.workspaces.itemById(addinConfig.design_workspace) 
@@ -78,7 +84,7 @@ def stopCreate(ui: adsk.core.UserInterface):
     if toolbar_tab.toolbarPanels.count == 0: 
         toolbar_tab.deleteMe() 
 
-def startEdit(ui: adsk.core.UserInterface) -> adsk.core.CommandDefinition:
+def startEditCommand(ui: adsk.core.UserInterface) -> adsk.core.CommandDefinition:
     """ create the entry for the edit command """
     
     # check for existing command and kill it befor create new
@@ -87,12 +93,13 @@ def startEdit(ui: adsk.core.UserInterface) -> adsk.core.CommandDefinition:
         existingDef.deleteMe()
 
     editCmdDef = ui.commandDefinitions.addButtonDefinition(featureConfig.EDIT_CMD_ID, featureConfig.EDIT_CMD_NAME, featureConfig.EDIT_CMD_Description)
-    
+    global _uiForEdit
+    _uiForEdit = ui
     # Define an event handler for the command created event. It will be called when the button is clicked. 
-    futil.add_handler(editCmdDef.commandCreated, command_edited) 
+    futil.add_handler(editCmdDef.commandCreated, editCommand_created) 
     return editCmdDef
 
-def stopEdit(ui: adsk.core.UserInterface):
+def stopEditCommand(ui: adsk.core.UserInterface):
     """ Stopping the edit command """
      # Get the various UI elements for this command 
     workspace = ui.workspaces.itemById(addinConfig.design_workspace) 
@@ -119,13 +126,14 @@ def stopEdit(ui: adsk.core.UserInterface):
         
 # Function that is called when a user clicks the corresponding button in the UI.
 # This defines the contents of the command dialog and connects to the command related events.
-def command_created(args: adsk.core.CommandCreatedEventArgs):
+def createCommand_created(args: adsk.core.CommandCreatedEventArgs):
+    """ handling the create event for the create command """
     # General logging for debug.
     futil.log(f'{featureConfig.CREATE_CMD_NAME} Command Create Event')
-    createCommand(args)
+    createCommandView(args)
 
     # TODO Connect to the events that are needed by this command.
-    futil.add_handler(args.command.execute, command_execute, local_handlers=local_handlers)
+    futil.add_handler(args.command.execute, createCommand_execute, local_handlers=local_handlers)
     futil.add_handler(args.command.inputChanged, command_input_changed, local_handlers=local_handlers)
     futil.add_handler(args.command.executePreview, command_preview, local_handlers=local_handlers)
     futil.add_handler(args.command.validateInputs, command_validate_input, local_handlers=local_handlers)
@@ -133,31 +141,46 @@ def command_created(args: adsk.core.CommandCreatedEventArgs):
         
 # Function that is called when a user clicks the corresponding button in the UI.
 # This defines the contents of the command dialog and connects to the command related events.
-def command_edited(args: adsk.core.CommandCreatedEventArgs):
+def editCommand_created(args: adsk.core.CommandCreatedEventArgs):
+    """ handling the create event for the edit command """
     # General logging for debug.
     futil.log(f'{featureConfig.EDIT_CMD_NAME} Command Edit Event')
-    createCommand(args)
+    
+    # Get the currently selected custom feature.
+    editedCustomFeature = _uiForEdit.activeSelections.item(0).entity
+    if editedCustomFeature is None:
+        return
+    # Get the collection of custom parameters for this custom feature.
+    params = _editedCustomFeature.parameters
+    createCommandView(args, params)
 
-def createCommand(args: adsk.core.CommandCreatedEventArgs):
-    """ create the visible command dialog """
+def createCommandView(args: adsk.core.CommandCreatedEventArgs, featureParams: adsk.fusion.CustomFeatureParameters = None):
+    """ create the visible command dialog 
+        This is the same for create and edit command """
     # https://help.autodesk.com/view/fusion360/ENU/?contextId=CommandInputs 
     inputs = args.command.commandInputs 
  
-    # TODO Define the dialog for your command by adding different inputs to the command. 
+    # try to look for existing command inputs
+    
+    planeSelect: adsk.core.SelectionCommandInput = inputs.itemById(dialogID.planeSelect)
+    pointSelect: adsk.core.SelectionCommandInput = inputs.itemById(dialogID.pointSelect)
+    distanceInput: adsk.core.DistanceValueCommandInput = inputs.itemById(dialogID.distanceInput)
  
     # Create the selector for the plane. 
-    planeInput = inputs.addSelectionInput(dialogID.planeSelect, 'Select Plane', 'Select Plane') 
-    planeInput.addSelectionFilter('PlanarFaces') 
-    planeInput.addSelectionFilter('ConstructionPlanes') 
-    planeInput.setSelectionLimits(1,1) 
+    if planeSelect == None:
+        planeSelect = inputs.addSelectionInput(dialogID.planeSelect, 'Select Plane', 'Select Plane') 
+        planeSelect.addSelectionFilter('PlanarFaces') 
+        planeSelect.addSelectionFilter('ConstructionPlanes') 
+        planeSelect.setSelectionLimits(1,1) 
  
     # Create the selector for the points. 
-    pointInput = inputs.addSelectionInput(dialogID.pointSelect, 'Select Points', 'Select Points') 
-    pointInput.addSelectionFilter('Vertices') 
-    pointInput.addSelectionFilter('ConstructionPoints') 
-    pointInput.addSelectionFilter('SketchPoints') 
-    pointInput.setSelectionLimits(1,1) 
-    pointInput.isEnabled = False 
+    if pointSelect == None:
+        pointSelect = inputs.addSelectionInput(dialogID.pointSelect, 'Select Points', 'Select Points') 
+        pointSelect.addSelectionFilter('Vertices') 
+        pointSelect.addSelectionFilter('ConstructionPoints') 
+        pointSelect.addSelectionFilter('SketchPoints') 
+        pointSelect.setSelectionLimits(1,1) 
+        pointSelect.isEnabled = False 
 
     # Create the list for types of shapes.
     shapeList = inputs.addDropDownCommandInput(dialogID.shapeList, 'Slot Type', adsk.core.DropDownStyles.LabeledIconDropDownStyle)
@@ -167,21 +190,30 @@ def createCommand(args: adsk.core.CommandCreatedEventArgs):
     sizeSpinner = inputs.addIntegerSpinnerCommandInput(dialogID.sizeSpinner, 'Profile Size' , 10, 100, 5, 40)
     slotSizeSpinner = inputs.addIntegerSpinnerCommandInput(dialogID.slotSizeSpinner, 'Slot Size' , 4, 10, 2, 8)
 
-    initValue = adsk.core.ValueInput.createByString('10.0 cm')
-    distanceInput = inputs.addDistanceValueCommandInput(dialogID.distanceInput, 'Distance', initValue)
-    distanceInput.isEnabled = False
-    distanceInput.isVisible = False
+    if distanceInput == None:
+        initValue = adsk.core.ValueInput.createByString('10.0 cm')
+        distanceInput = inputs.addDistanceValueCommandInput(dialogID.distanceInput, 'Distance', initValue)
+        distanceInput.isEnabled = False
+        distanceInput.isVisible = False
 
     # Create the list for dircetion type.
-    dircetTypeList = inputs.addDropDownCommandInput(dialogID.directionTypeList, 'Direction', adsk.core.DropDownStyles.LabeledIconDropDownStyle)
-    dircetTypeList.listItems.add('One Side', True, addinConfig.FUSION_UI_RESOURCES_FOLDER + '/Modeling/LeftSide', -1)
-    dircetTypeList.listItems.add('Both Side', False, addinConfig.FUSION_UI_RESOURCES_FOLDER + '/Modeling/BothSide', -1)
-    dircetTypeList.listItems.add('Symetric', False, addinConfig.FUSION_UI_RESOURCES_FOLDER + '/Modeling/Symmetric', -1)
+    directTypeList = inputs.addDropDownCommandInput(dialogID.directionTypeList, 'Direction', adsk.core.DropDownStyles.LabeledIconDropDownStyle)
+    directTypeList.listItems.add('One Side', True, addinConfig.FUSION_UI_RESOURCES_FOLDER + '/Modeling/LeftSide', -1)
+    directTypeList.listItems.add('Both Side', False, addinConfig.FUSION_UI_RESOURCES_FOLDER + '/Modeling/BothSide', -1)
+    directTypeList.listItems.add('Symetric', False, addinConfig.FUSION_UI_RESOURCES_FOLDER + '/Modeling/Symmetric', -1)
 
     
+    # Create the list for dircetion type.
+    featureTypeList = inputs.addDropDownCommandInput(dialogID.featureTypeList, 'Operation', adsk.core.DropDownStyles.LabeledIconDropDownStyle)
+    featureTypeList.listItems.add(dialogID.newBody_Name, True) #, addinConfig.FUSION_UI_RESOURCES_FOLDER + '/Modeling/LeftSide', -1)
+    featureTypeList.listItems.add(dialogID.newComponent_Name, False) #, addinConfig.FUSION_UI_RESOURCES_FOLDER + '/NewComponent', -1)
+    featureTypeList.listItems.add(dialogID.newCustomFeature_Name, False)#, addinConfig.FUSION_UI_RESOURCES_FOLDER + '/Modeling/Symmetric', -1)
+
 # This event handler is called when the user clicks the OK button in the command dialog or 
 # is immediately called after the created event not command inputs were created for the dialog.
-def command_execute(args: adsk.core.CommandEventArgs):
+def createCommand_execute(args: adsk.core.CommandEventArgs):
+    """ handling the execute event for the create command 
+        Remark: this event would not fired if the preview sets the isValidResult to True """
     # General logging for debug.
     futil.log(f'{featureConfig.FEATURE_NAME} Command Execute Event')
 
@@ -189,19 +221,28 @@ def command_execute(args: adsk.core.CommandEventArgs):
 
     # Get a reference to your command's inputs.
     inputs = args.command.commandInputs
-    text_box: adsk.core.TextBoxCommandInput = inputs.itemById('text_box')
-    value_input: adsk.core.ValueCommandInput = inputs.itemById('value_input')
+    
+    planeSelect: adsk.core.SelectionCommandInput = inputs.itemById(dialogID.planeSelect)
+    pointSelect: adsk.core.SelectionCommandInput = inputs.itemById(dialogID.pointSelect)
+    distanceInput: adsk.core.DistanceValueCommandInput = inputs.itemById(dialogID.distanceInput)
+    sizeInput: adsk.core.IntegerSpinnerCommandInput = inputs.itemById(dialogID.sizeSpinner)
+    slotSizeInput: adsk.core.IntegerSpinnerCommandInput = inputs.itemById(dialogID.slotSizeSpinner)
+    shapeInput: adsk.core.DropDownCommandInput = inputs.itemById(dialogID.shapeList)
+    directInput: adsk.core.DropDownCommandInput = inputs.itemById(dialogID.directionTypeList)
+    featureTypeInput: adsk.core.DropDownCommandInput = inputs.itemById(dialogID.featureTypeList)
 
     # Do something interesting
     futil.log(' execute create command: Create the custom feature')
-    # Create the custom feature input.
-    #des: adsk.fusion.Design = _app.activeProduct
-    #defLengthUnits = des.unitsManager.defaultLengthUnits
-    #custFeatInput = comp.features.customFeatures.createInput(_customFeatureDef)
+
+    # call the preview event function to use the same result
+    # this should move to a different function (calling from execute and preview)
+
+    myFeature.createFromInput(planeSelect, pointSelect, distanceInput, sizeInput, slotSizeInput, shapeInput, directInput, featureTypeInput)
 
 
 # This event handler is called when the command needs to compute a new preview in the graphics window.
 def command_preview(args: adsk.core.CommandEventArgs):
+    """ handling the preview event for create and edit command """
     # General logging for debug.
     futil.log(f'{featureConfig.FEATURE_NAME} Command Preview Event')
     # Code to react to the event.
@@ -217,9 +258,7 @@ def command_preview(args: adsk.core.CommandEventArgs):
             if input.id == dialogID.planeSelect:
                 planeEnt = input.selection(0).entity
             elif input.id == dialogID.pointSelect:
-                pointEnts = adsk.core.ObjectCollection.create()
-                for i in range(0, input.selectionCount):
-                    pointEnts.add(input.selection(i).entity)
+                pointEnt = input.selection(0).entity
             elif input.id == dialogID.sizeSpinner:
                 size = input.value
             elif input.id == dialogID.distanceInput:
@@ -230,13 +269,13 @@ def command_preview(args: adsk.core.CommandEventArgs):
                 direction = input.selectedItem.name
         
         # Draw the preview geometry.
-        drawGeometry(planeEnt , pointEnts, shape, size, length, direction)
+        myFeature.drawGeometry(planeEnt , pointEnt, shape, size, length, direction)
         
         # Set this property indicating that the preview is a good
         # result and can be used as the final result when the command
         # is executed.
         # this will skip the execute handler 
-        cmdArgs.isValidResult = True            
+        #cmdArgs.isValidResult = True            
     except:
         app = adsk.core.Application.get()
         ui = app.userInterface
@@ -305,7 +344,7 @@ def command_destroy(args: adsk.core.CommandEventArgs):
     local_handlers = []
  
 # Draws the shapes based on the input argument.     
-def drawGeometry(planeEnt, pointEnts, shape, size, length, direction):
+def drawGeometry_Old(planeEnt, pointEnts, shape, size, length, direction):
     try:
         # Get the design.
         app = adsk.core.Application.get()

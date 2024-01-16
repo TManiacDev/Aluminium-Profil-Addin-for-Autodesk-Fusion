@@ -8,6 +8,8 @@ from . import config
 
 from .commands import entry as command
 
+from . import manageFeature as myFeature
+
 _app: adsk.core.Application = None
 _ui: adsk.core.UserInterface = None
 _handlers = []
@@ -21,15 +23,10 @@ def start():
         _app = adsk.core.Application.get()
         _ui  = _app.userInterface
 
-        createCmdDef =  command.startCreate(_ui)
-        editCmdDef = command.startEdit(_ui)
+        createCmdDef =  command.startCreateCommand(_ui)
+        editCmdDef = command.startEditCommand(_ui)
         
-        # Create the custom feature definition.
-        global _customFeatureDef
-        _customFeatureDef = adsk.fusion.CustomFeatureDefinition.create('adskCustomPocket', 
-                                                                        'Custom Pocket', 
-                                                                        'Resources/CustomPocket')
-        _customFeatureDef.editCommandId = editCmdDef.id
+        myFeature.create(_app, editCmdDef)
     except:
         futil.handle_error('start feature')
 
@@ -43,8 +40,8 @@ def stop():
         # Remove all of the event handlers your app has created
         futil.clear_handlers()
 
-        command.stopEdit(_ui)
-        command.stopCreate(_ui)
+        command.stopEditCommand(_ui)
+        command.stopCreateCommand(_ui)
 
 
     except:
