@@ -275,7 +275,7 @@ def command_preview(args: adsk.core.CommandEventArgs):
         # result and can be used as the final result when the command
         # is executed.
         # this will skip the execute handler 
-        cmdArgs.isValidResult = True            
+        #cmdArgs.isValidResult = True            
     except:
         app = adsk.core.Application.get()
         ui = app.userInterface

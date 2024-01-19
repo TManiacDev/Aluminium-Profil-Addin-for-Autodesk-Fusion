@@ -1,3 +1,10 @@
+"""
+Project to handle some nice functions around Alu Profiles used on 3D Printers and so an.
+
+@file: this is the entry used from Fusion 360
+
+"""
+
 # Assuming you have not changed the general structure of the template no modification is needed in this file.
 from . import commands
 from .lib import fusion360utils as futil
@@ -8,6 +15,7 @@ import adsk.core, adsk.fusion, traceback
 from . import aluProfileFeature
 
 def run(context):
+    """This function is called from Fusion360 to start the Add-In"""
     try:
         # This will run the start function in each of your commands as defined in commands/__init__.py
         commands.start()
@@ -22,6 +30,7 @@ def run(context):
 
 
 def stop(context):
+    """This function is called from Fusion360 if you shut down the Add-In"""
     try:
         # Remove all of the event handlers your app has created
         futil.clear_handlers()

@@ -15,12 +15,16 @@ _ui: adsk.core.UserInterface = None
 _myFeatureDef: adsk.fusion.CustomFeatureDefinition = None
 
 def create(_app : adsk.core.Application, editCmdDef : adsk.core.CommandDefinition):
-    """ to create the feature """
+    """Create the feature 
+    
+    Creates the internal behavior of the feature and connects the edit function to the feature
+    """
+    
     # Create the custom feature definition.
     global _myFeatureDef
     _myFeatureDef = adsk.fusion.CustomFeatureDefinition.create(config.FEATURE_ID, 
                                                                config.FEATURE_NAME, 
-                                                                'resources')
+                                                                'aluProfileFeature/resources')
     _myFeatureDef.editCommandId = editCmdDef.id
 
 def createFromInput( planeInput: adsk.core.SelectionCommandInput,
@@ -31,6 +35,11 @@ def createFromInput( planeInput: adsk.core.SelectionCommandInput,
                      shapeInput: adsk.core.DropDownCommandInput,
                      directInput: adsk.core.DropDownCommandInput,
                      featureTypeInput: adsk.core.DropDownCommandInput ):
+    """Create an element of the feature
+
+    The constructed element will become a feature element
+    """
+
     try:
         futil.log('create alu profile feature from input(s)')
         plane = planeInput.selection(0).entity
@@ -55,6 +64,11 @@ def createFromInput( planeInput: adsk.core.SelectionCommandInput,
         
 # Draws the shapes based on the input argument.     
 def drawGeometry(planeEnt, pointEnt, shape, size_cm, length, direction) -> (adsk.fusion.Sketch, adsk.fusion.ExtrudeFeature):
+    """Draw an element
+    
+    We draw an element to visualize it
+    """
+
     try:
         # Get the design.
         app = adsk.core.Application.get()
@@ -119,17 +133,18 @@ def drawGeometry(planeEnt, pointEnt, shape, size_cm, length, direction) -> (adsk
             point_out_v = adsk.core.Point3D.create(pointProfilCenter.x + size/2, pointProfilCenter.y + size/2 - arcRadius, 0)
             outerVerticalLine = skLines.addByTwoPoints(horizontalCenterLine.endSketchPoint,point_out_v)
 
-            arcCenter = adsk.core.Point3D.create(pointProfilCenter.x + size/2 - arcRadius, pointProfilCenter.y + size/2 - arcRadius , 0)
-            
-            
+            # draw the arc 
+            arcCenter = adsk.core.Point3D.create(pointProfilCenter.x + size/2 - arcRadius, pointProfilCenter.y + size/2 - arcRadius , 0)            
             arc = sketchArcs.addByCenterStartSweep(arcCenter,outerVerticalLine.endSketchPoint,math.radians(90))
             
-            
+            # draw the last line horizontal back to the vertical center line
             outerHorizontalLine = skLines.addByTwoPoints(arc.endSketchPoint,verticalCenterLine.startSketchPoint)
 
+            # create the arc tangent constraints
             sketchConstraints.addTangent(outerVerticalLine, arc)
             sketchConstraints.addTangent(arc, outerHorizontalLine)
 
+            # fix the dimensions
             textPoint = adsk.core.Point3D.create(pointProfilCenter.x - 0.5, pointProfilCenter.y + 0.5, 0) 
             dimSize = sketchDimensions.addOffsetDimension(horizontalCenterLine, outerHorizontalLine, textPoint)
             textPoint = adsk.core.Point3D.create(pointProfilCenter.x + 0.5, pointProfilCenter.y - 0.5, 0) 
