@@ -183,9 +183,9 @@ def createCommandView(args: adsk.core.CommandCreatedEventArgs, featureParams: ad
         pointSelect.isEnabled = False 
 
     # Create the list for types of shapes.
-    shapeList = inputs.addDropDownCommandInput(dialogID.shapeList, 'Slot Type', adsk.core.DropDownStyles.LabeledIconDropDownStyle)
-    shapeList.listItems.add('I-Type 8', True, ICON_FOLDER + '/profiles', -1)
-    shapeList.listItems.add('None', True, ICON_FOLDER + '/None', -1)
+    slotTypeList = inputs.addDropDownCommandInput(dialogID.slotTypeList, 'Slot Type', adsk.core.DropDownStyles.LabeledIconDropDownStyle)
+    slotTypeList.listItems.add('I-Type 8', True, ICON_FOLDER + '/profiles', -1)
+    slotTypeList.listItems.add('None', True, ICON_FOLDER + '/None', -1)
 
     sizeSpinner = inputs.addIntegerSpinnerCommandInput(dialogID.sizeSpinner, 'Profile Size' , 10, 100, 5, 40)
     slotSizeSpinner = inputs.addIntegerSpinnerCommandInput(dialogID.slotSizeSpinner, 'Slot Size' , 4, 10, 2, 8)
@@ -227,7 +227,7 @@ def createCommand_execute(args: adsk.core.CommandEventArgs):
     distanceInput: adsk.core.DistanceValueCommandInput = inputs.itemById(dialogID.distanceInput)
     sizeInput: adsk.core.IntegerSpinnerCommandInput = inputs.itemById(dialogID.sizeSpinner)
     slotSizeInput: adsk.core.IntegerSpinnerCommandInput = inputs.itemById(dialogID.slotSizeSpinner)
-    shapeInput: adsk.core.DropDownCommandInput = inputs.itemById(dialogID.shapeList)
+    slotTypeInput: adsk.core.DropDownCommandInput = inputs.itemById(dialogID.slotTypeList)
     directInput: adsk.core.DropDownCommandInput = inputs.itemById(dialogID.directionTypeList)
     featureTypeInput: adsk.core.DropDownCommandInput = inputs.itemById(dialogID.featureTypeList)
 
@@ -237,7 +237,7 @@ def createCommand_execute(args: adsk.core.CommandEventArgs):
     # call the preview event function to use the same result
     # this should move to a different function (calling from execute and preview)
 
-    myFeature.createFromInput(planeSelect, pointSelect, distanceInput, sizeInput, slotSizeInput, shapeInput, directInput, featureTypeInput)
+    myFeature.createFromInput(planeSelect, pointSelect, distanceInput, sizeInput, slotSizeInput, slotTypeInput, directInput, featureTypeInput)
 
 
 # This event handler is called when the command needs to compute a new preview in the graphics window.
@@ -263,13 +263,13 @@ def command_preview(args: adsk.core.CommandEventArgs):
                 size = input.value
             elif input.id == dialogID.distanceInput:
                 length = input.value
-            elif input.id == dialogID.shapeList:
-                shape = input.selectedItem.name
+            elif input.id == dialogID.slotTypeList:
+                slotType = input.selectedItem.name
             elif input.id == dialogID.directionTypeList:
                 direction = input.selectedItem.name
         
         # Draw the preview geometry.
-        myFeature.drawGeometry(planeEnt , pointEnt, shape, size, length, direction)
+        myFeature.drawGeometry(dialogID.newBody_Name, planeEnt , pointEnt, slotType, size, length, direction)
         
         # Set this property indicating that the preview is a good
         # result and can be used as the final result when the command
@@ -343,150 +343,3 @@ def command_destroy(args: adsk.core.CommandEventArgs):
     global local_handlers
     local_handlers = []
  
-# Draws the shapes based on the input argument.     
-def drawGeometry_Old(planeEnt, pointEnts, shape, size, length, direction):
-    try:
-        # Get the design.
-        app = adsk.core.Application.get()
-        des = adsk.fusion.Design.cast(app.activeProduct)
-
-        defaultSize = 40 / 10 # Angabe in mm in cm
-        
-        # Create a new sketch plane.
-        sk = des.rootComponent.sketches.add(planeEnt)    
-        
-        for pntEnt in pointEnts:
-            # Project the point onto the sketch.
-            skPnt = sk.project(pntEnt).item(0)
-            
-            if shape == 'Square':
-                # Draw four lines to define a square.
-                skLines = sk.sketchCurves.sketchLines
-                line1 = skLines.addByTwoPoints(adsk.core.Point3D.create(skPnt.geometry.x - size/2, skPnt.geometry.y - size/2, 0), adsk.core.Point3D.create(skPnt.geometry.x + size/2, skPnt.geometry.y - size/2, 0))
-                line2 = skLines.addByTwoPoints(line1.endSketchPoint, adsk.core.Point3D.create(skPnt.geometry.x + size/2, skPnt.geometry.y + size/2, 0))
-                line3 = skLines.addByTwoPoints(line2.endSketchPoint, adsk.core.Point3D.create(skPnt.geometry.x - size/2, skPnt.geometry.y + size/2, 0))
-                line4 = skLines.addByTwoPoints(line3.endSketchPoint, line1.startSketchPoint)
-            elif shape == 'Pentagon':
-                # Draw file lines to define a pentagon.
-                skLines = sk.sketchCurves.sketchLines
-                angle = math.pi/2
-                halfSize = size/2
-                x1 = halfSize * math.cos(angle)
-                y1 = halfSize * math.sin(angle)
-
-                angle += math.pi/2.5
-                x2 = halfSize * math.cos(angle)
-                y2 = halfSize * math.sin(angle)
-                line1 = skLines.addByTwoPoints(adsk.core.Point3D.create(x1 + skPnt.geometry.x, y1 + skPnt.geometry.y, 0), adsk.core.Point3D.create(x2 + skPnt.geometry.x, y2 + skPnt.geometry.y, 0))
-
-                angle += math.pi/2.5
-                x = halfSize * math.cos(angle)
-                y = halfSize * math.sin(angle)
-                line2 = skLines.addByTwoPoints(line1.endSketchPoint, adsk.core.Point3D.create(x + skPnt.geometry.x, y + skPnt.geometry.y, 0))
-
-                angle += math.pi/2.5
-                x = halfSize * math.cos(angle)
-                y = halfSize * math.sin(angle)
-                line3 = skLines.addByTwoPoints(line2.endSketchPoint, adsk.core.Point3D.create(x + skPnt.geometry.x, y + skPnt.geometry.y, 0))
-
-                angle += math.pi/2.5
-                x = halfSize * math.cos(angle)
-                y = halfSize * math.sin(angle)
-                line4 = skLines.addByTwoPoints(line3.endSketchPoint, adsk.core.Point3D.create(x + skPnt.geometry.x, y + skPnt.geometry.y, 0))
-                
-                line5 = skLines.addByTwoPoints(line4.endSketchPoint, line1.startSketchPoint)
-    
-            else: 
-                # in any other case we create a profile without a slice
-                skLines = sk.sketchCurves.sketchLines
-                sketchArcs = sk.sketchCurves.sketchArcs 
-                sketchDimensions = sk.sketchDimensions
-                sketchConstraints = sk.geometricConstraints
-                arcRadius = size / 10           
-                sk.name = 'Profile Sketch'
-                sk.attributes.add('sketchStyle', 'quarterSketch', 'True')
-                """
-                point_1 = adsk.core.Point3D.create(skPnt.geometry.x - size/2 + arcRadius, skPnt.geometry.y + size/2, 0)
-
-                arcCenter = adsk.core.Point3D.create(skPnt.geometry.x - size/2 + arcRadius, skPnt.geometry.y + size/2 - arcRadius , 0)
-                arc1 = sketchArcs.addByCenterStartSweep(arcCenter,point_1,math.radians(90))
-
-                point_2 = adsk.core.Point3D.create(skPnt.geometry.x - size/2, skPnt.geometry.y - size/2 + arcRadius, 0)
-                line1 = skLines.addByTwoPoints(arc1.endSketchPoint,point_2)
-
-                arcCenter = adsk.core.Point3D.create(skPnt.geometry.x - size/2 + arcRadius, skPnt.geometry.y - size/2 + arcRadius , 0)
-                arc2 = sketchArcs.addByCenterStartSweep(arcCenter,line1.endSketchPoint,math.radians(90))
-                
-                point_3 = adsk.core.Point3D.create(skPnt.geometry.x + size/2 - arcRadius, skPnt.geometry.y - size/2, 0)
-                line2 = skLines.addByTwoPoints(arc2.endSketchPoint, point_3)
-
-                arcCenter = adsk.core.Point3D.create(skPnt.geometry.x + size/2 - arcRadius, skPnt.geometry.y - size/2 + arcRadius , 0)
-                arc3 = sketchArcs.addByCenterStartSweep(arcCenter,line2.endSketchPoint,math.radians(90))
-
-                point_4 = adsk.core.Point3D.create(skPnt.geometry.x + size/2, skPnt.geometry.y + size/2 - arcRadius, 0)
-                line3 = skLines.addByTwoPoints(arc3.endSketchPoint, point_4)
-
-                arcCenter = adsk.core.Point3D.create(skPnt.geometry.x + size/2 - arcRadius, skPnt.geometry.y + size/2 - arcRadius , 0)
-                arc4 = sketchArcs.addByCenterStartSweep(arcCenter,line3.endSketchPoint,math.radians(90))
-
-                line4 = skLines.addByTwoPoints(arc4.endSketchPoint, arc1.startSketchPoint)
-                """
-                # we use quarte as sketch
-
-                point_center_h = adsk.core.Point3D.create(skPnt.geometry.x + size/2, 0, 0)
-                horizontalCenterLine = skLines.addByTwoPoints(sk.originPoint,point_center_h)
-                horizontalCenterLine.isCenterLine = True
-                sketchConstraints.addHorizontal(horizontalCenterLine)
-
-                point_out_v = adsk.core.Point3D.create(skPnt.geometry.x + size/2, skPnt.geometry.x + size/2 - arcRadius, 0)
-                outerVerticalLine = skLines.addByTwoPoints(horizontalCenterLine.endSketchPoint,point_out_v)
-                arcCenter = adsk.core.Point3D.create(skPnt.geometry.x + size/2 - arcRadius, skPnt.geometry.y + size/2 - arcRadius , 0)
-                arc = sketchArcs.addByCenterStartSweep(arcCenter,outerVerticalLine.endSketchPoint,math.radians(90))
-                point_out_h = adsk.core.Point3D.create(0, skPnt.geometry.x + size/2, 0)
-                outerHorizontalLine = skLines.addByTwoPoints(arc.endSketchPoint,point_out_h)
-                verticalCenterLine = skLines.addByTwoPoints(outerHorizontalLine.endSketchPoint,sk.originPoint)
-                verticalCenterLine.isCenterLine = True
-                sketchConstraints.addVertical(verticalCenterLine)
-
-                sketchConstraints.addTangent(outerVerticalLine, arc)
-                sketchConstraints.addTangent(arc, outerHorizontalLine)
-
-                textPoint = adsk.core.Point3D.create(-5,5,0) 
-                dimSize = sketchDimensions.addOffsetDimension(horizontalCenterLine, outerHorizontalLine, textPoint)
-                textPoint = adsk.core.Point3D.create(5,-5,0)
-                dimSize = sketchDimensions.addOffsetDimension(outerVerticalLine, verticalCenterLine, textPoint)
-                textPoint = adsk.core.Point3D.create(horizontalCenterLine.endSketchPoint.geometry.x,verticalCenterLine.startSketchPoint.geometry.y,0)
-                dimArc = sketchDimensions.addRadialDimension(arc,textPoint)
-
-                
-                #thirdPoint = adsk.core.Point3D.create(skPnt.geometry.x + size/2, skPnt.geometry.y + size/2, 0)
-
-        # Find the inner profiles (only those with one loop).
-        profiles = adsk.core.ObjectCollection.create()
-        for prof in sk.profiles:
-            if prof.profileLoops.count == 1:
-                profiles.add(prof)
-
-        # Create the extrude feature.            
-        input = des.rootComponent.features.extrudeFeatures.createInput(profiles, adsk.fusion.FeatureOperations.NewBodyFeatureOperation)
-        extrudes = des.rootComponent.features.extrudeFeatures
-        distanceValue = adsk.core.ValueInput.createByReal(length)
-        
-        # Extrude Sample 2: Create an extrusion that goes from the profile plane with one side distance extent
-        extrudeInput = extrudes.createInput(prof, adsk.fusion.FeatureOperations.NewBodyFeatureOperation)
-        # Create a distance extent definition       
-        extent_distance = adsk.fusion.DistanceExtentDefinition.create(distanceValue) 
-        if direction == 'One Side':
-            extrudeInput.setOneSideExtent(extent_distance, adsk.fusion.ExtentDirections.PositiveExtentDirection)
-            # Create the extrusion
-            extrude2 = extrudes.add(extrudeInput)
-        elif direction == 'Symetric':
-            extrudeInput.setSymmetricExtent(distanceValue, True)
-            # Create the extrusion
-            extrude2 = extrudes.add(extrudeInput)
-
-    except:
-        app = adsk.core.Application.get()
-        ui = app.userInterface
-        ui.messageBox('Failed:\n{}'.format(traceback.format_exc()))    
-     
