@@ -76,7 +76,13 @@ def drawGeometry(geoType, planeEnt, pointEnt, shape, size_cm, length, direction)
     try:
         sk: adsk.fusion.Sketch = None
         body = None
-        if geoType == dialogID.newBody_Name:
+        if geoType == dialogID.preview_Name:
+            # the new body type uses a full sketch type because the circular pattern in sketch is more comfort then the circular pattern on body
+            # TODO: we need the real sketch type, today giving the shape is the wrong way
+            sk, startPoint = drawSketch(planeEnt, pointEnt, config.attr_previewSketch, size_cm)
+            drawSlotToSketch(sk, startPoint, shape)
+            body = drawBody(sk, length, direction)
+        elif geoType == dialogID.newBody_Name:
             # the new body type uses a full sketch type because the circular pattern in sketch is more comfort then the circular pattern on body
             # TODO: we need the real sketch type, today giving the shape is the wrong way
             sk, startPoint = drawSketch(planeEnt, pointEnt, config.attr_fullSketch, size_cm)
@@ -111,14 +117,9 @@ def drawSketch(planeEnt, pointEnt, sketchType, size_cm) -> (adsk.fusion.Sketch, 
             # maybe we handle a circular pattern later
             # ######################################
             pass
-        elif sketchType == config.attr_fullSketch:
+        elif ((sketchType == config.attr_fullSketch) | (sketchType == config.attr_previewSketch)):
             # ######################################
             # this sketch holds the full profile
-            # ######################################
-
-            # ######################################
-            # TODO this costs many of time
-            # so we need a preview without constraints and dimension fixing
             # ######################################
             size = size_cm / 10
             # in any other case we create a profile without a slice
@@ -127,9 +128,6 @@ def drawSketch(planeEnt, pointEnt, sketchType, size_cm) -> (adsk.fusion.Sketch, 
             sketchDimensions = sk.sketchDimensions
             sketchConstraints = sk.geometricConstraints
             arcRadius = size / 10           
-            sk.name = 'Profile Full Sketch'
-            sk.attributes.add(config.attr_SketchStyleGroup, config.attr_SketchStyle, config.attr_fullSketch)
-            sk.attributes.add(config.attr_SketchStyleGroup, config.attr_CustomSketch, 'False')
 
             # starting with the projected point and goes to x positiv => horizontal 
             pointProfilCenter = adsk.core.Point3D.create(skPnt.geometry.x, skPnt.geometry.y, 0)
@@ -137,60 +135,71 @@ def drawSketch(planeEnt, pointEnt, sketchType, size_cm) -> (adsk.fusion.Sketch, 
             # draw the starting arc at top right corner
             arcCenter = adsk.core.Point3D.create(pointProfilCenter.x + size/2 - arcRadius, pointProfilCenter.y - size/2 + arcRadius , 0)  
             arcStartpoint = adsk.core.Point3D.create(pointProfilCenter.x + size/2 - arcRadius, pointProfilCenter.y - size/2 , 0)
-            startingArc = sketchArcs.addByCenterStartSweep(arcCenter,arcStartpoint,math.radians(90))
+            arc_1 = sketchArcs.addByCenterStartSweep(arcCenter,arcStartpoint,math.radians(90))
 
             # draw the right vertical outer line with constraint
             point_v2 = adsk.core.Point3D.create(pointProfilCenter.x + size/2, pointProfilCenter.y + size/2 - arcRadius, 0)
-            outerVerticalLine1 = skLines.addByTwoPoints(startingArc.endSketchPoint,point_v2)
-            sketchConstraints.addVertical(outerVerticalLine1)
-            sketchConstraints.addTangent(startingArc, outerVerticalLine1)
+            outerVerticalLine1 = skLines.addByTwoPoints(arc_1.endSketchPoint,point_v2)
 
             # draw the arc at lower right corner
             arcCenter = adsk.core.Point3D.create(pointProfilCenter.x + size/2 - arcRadius, pointProfilCenter.y + size/2 - arcRadius , 0)            
-            arc = sketchArcs.addByCenterStartSweep(arcCenter,outerVerticalLine1.endSketchPoint,math.radians(90))            
-            # create the arc tangent constraint to the previos line
-            sketchConstraints.addTangent(outerVerticalLine1, arc)
-            sketchConstraints.addEqual(arc, startingArc)
+            arc_2 = sketchArcs.addByCenterStartSweep(arcCenter,outerVerticalLine1.endSketchPoint,math.radians(90))  
 
             # draw the lower line horizontal
-            point_h1 = adsk.core.Point3D.create(pointProfilCenter.x - size/2 + arcRadius, pointProfilCenter.y - size/2, 0)
-            outerHorizontalLine1 = skLines.addByTwoPoints(arc.endSketchPoint,point_h1)
-            sketchConstraints.addHorizontal(outerHorizontalLine1)
-            sketchConstraints.addTangent(arc, outerHorizontalLine1)
+            point_h1 = adsk.core.Point3D.create(pointProfilCenter.x - size/2+ arcRadius, pointProfilCenter.y + size/2, 0)
+            outerHorizontalLine1 = skLines.addByTwoPoints(arc_2.endSketchPoint,point_h1)
 
             # draw the arc at lower left corner and create constraint to the previous line
             arcCenter = adsk.core.Point3D.create(pointProfilCenter.x - size/2 + arcRadius, pointProfilCenter.y + size/2 - arcRadius , 0)            
-            arc = sketchArcs.addByCenterStartSweep(arcCenter,outerHorizontalLine1.endSketchPoint,math.radians(90))
-            sketchConstraints.addTangent(outerHorizontalLine1, arc)
-            sketchConstraints.addEqual(arc, startingArc)
+            arc_3 = sketchArcs.addByCenterStartSweep(arcCenter,outerHorizontalLine1.endSketchPoint,math.radians(90))
 
-            centerLine = skLines.addByTwoPoints(startingArc.centerSketchPoint, arc.centerSketchPoint)
-            centerLine.isCenterLine = True
-            sketchConstraints.addMidPoint(skPnt, centerLine)
             
             # draw the left side
             point_v3 = adsk.core.Point3D.create(pointProfilCenter.x - size/2, pointProfilCenter.y - size/2 + arcRadius, 0)
-            outerVerticalLine2 = skLines.addByTwoPoints(arc.endSketchPoint,point_v3)
-            sketchConstraints.addTangent(arc, outerVerticalLine2)
+            outerVerticalLine2 = skLines.addByTwoPoints(arc_3.endSketchPoint,point_v3)
             
             # draw the arc 
             arcCenter = adsk.core.Point3D.create(pointProfilCenter.x - size/2 + arcRadius, pointProfilCenter.y - size/2 + arcRadius , 0)            
-            arc = sketchArcs.addByCenterStartSweep(arcCenter,outerVerticalLine2.endSketchPoint,math.radians(90))
-            sketchConstraints.addTangent(outerVerticalLine2, arc)
-            sketchConstraints.addEqual(arc, startingArc)
+            arc_4 = sketchArcs.addByCenterStartSweep(arcCenter,outerVerticalLine2.endSketchPoint,math.radians(90))
 
             # close with last line back to starting arc
-            outerHorizontalLine2 = skLines.addByTwoPoints(arc.endSketchPoint,startingArc.startSketchPoint)
-            sketchConstraints.addTangent(arc, outerHorizontalLine2)
+            outerHorizontalLine2 = skLines.addByTwoPoints(arc_4.endSketchPoint,arc_1.startSketchPoint)
 
+            # ######################################
+            # TODO this costs many of time
+            # so we need a preview without constraints and dimension fixing
+            # ######################################
+            # adding constrains to the full sketch
+            # the preview doesn't need them
+            if sketchType == config.attr_fullSketch :        
+                sk.name = 'Profile Full Sketch'
+                sk.attributes.add(config.attr_SketchStyleGroup, config.attr_SketchStyle, config.attr_fullSketch)
+                sk.attributes.add(config.attr_SketchStyleGroup, config.attr_CustomSketch, 'False')
+                # we fix the sketch to the selected point
+                centerLine = skLines.addByTwoPoints(arc_1.centerSketchPoint, arc_3.centerSketchPoint)
+                centerLine.isCenterLine = True
+                sketchConstraints.addMidPoint(skPnt, centerLine)
 
-            # fix the dimensions
-            textPoint = adsk.core.Point3D.create(pointProfilCenter.x - 0.5, pointProfilCenter.y + 0.5, 0) 
-            dimSize = sketchDimensions.addOffsetDimension(outerHorizontalLine1, outerHorizontalLine2, textPoint)
-            textPoint = adsk.core.Point3D.create(pointProfilCenter.x + 0.5, pointProfilCenter.y - 0.5, 0) 
-            dimSize = sketchDimensions.addOffsetDimension(outerVerticalLine1, outerVerticalLine2, textPoint)
-            textPoint = adsk.core.Point3D.create(startingArc.centerSketchPoint.geometry.x + 0.5,startingArc.centerSketchPoint.geometry.y - 0.5, 0)
-            dimArc = sketchDimensions.addRadialDimension(startingArc,textPoint)
+                sketchConstraints.addVertical(outerVerticalLine1)
+                sketchConstraints.addHorizontal(outerHorizontalLine1)
+                sketchConstraints.addTangent(arc_1, outerVerticalLine1)  
+                sketchConstraints.addTangent(outerVerticalLine1, arc_2)
+                sketchConstraints.addTangent(arc_2, outerHorizontalLine1)
+                sketchConstraints.addTangent(outerHorizontalLine1, arc_3)
+                sketchConstraints.addTangent(arc_3, outerVerticalLine2)
+                sketchConstraints.addTangent(outerVerticalLine2, arc_4)
+                sketchConstraints.addTangent(arc_4, outerHorizontalLine2)
+                sketchConstraints.addEqual(arc_2, arc_1)
+                sketchConstraints.addEqual(arc_3, arc_1)
+                sketchConstraints.addEqual(arc_4, arc_1)
+
+                # fix the dimensions
+                textPoint = adsk.core.Point3D.create(pointProfilCenter.x - 0.5, pointProfilCenter.y + 0.5, 0) 
+                dimSize = sketchDimensions.addOffsetDimension(outerHorizontalLine1, outerHorizontalLine2, textPoint)
+                textPoint = adsk.core.Point3D.create(pointProfilCenter.x + 0.5, pointProfilCenter.y - 0.5, 0) 
+                dimSize = sketchDimensions.addOffsetDimension(outerVerticalLine1, outerVerticalLine2, textPoint)
+                textPoint = adsk.core.Point3D.create(arc_1.centerSketchPoint.geometry.x + 0.5,arc_1.centerSketchPoint.geometry.y - 0.5, 0)
+                dimArc = sketchDimensions.addRadialDimension(arc_1,textPoint)
         elif sketchType == 'Half of Quarter':
             # ######################################
             # the Half of a Quarter is enough
@@ -200,7 +209,7 @@ def drawSketch(planeEnt, pointEnt, sketchType, size_cm) -> (adsk.fusion.Sketch, 
             # ######################################
             # standard is to hold the quarter sketch
             # ######################################
-            size = size_cm / 10 + 2
+            size = size_cm / 10
             # in any other case we create a profile without a slice
             skLines = sk.sketchCurves.sketchLines
             sketchArcs = sk.sketchCurves.sketchArcs 

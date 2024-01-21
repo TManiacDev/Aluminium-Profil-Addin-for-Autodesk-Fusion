@@ -11,6 +11,7 @@ directionTypeList = 'directTypeList_Id'
 featureTypeList = 'featureTypeList'
 
 # feature list elements
+preview_Name = 'BodyPreview'
 newBody_Name = 'New Body'
 newComponent_Name = 'New Component'
 newCustomFeature_Name = 'New Custom Feature'

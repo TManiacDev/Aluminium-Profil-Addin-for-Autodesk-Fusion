@@ -269,7 +269,7 @@ def command_preview(args: adsk.core.CommandEventArgs):
                 direction = input.selectedItem.name
         
         # Draw the preview geometry.
-        myFeature.drawGeometry(dialogID.newBody_Name, planeEnt , pointEnt, slotType, size, length, direction)
+        myFeature.drawGeometry(dialogID.preview_Name, planeEnt , pointEnt, slotType, size, length, direction)
         
         # Set this property indicating that the preview is a good
         # result and can be used as the final result when the command
