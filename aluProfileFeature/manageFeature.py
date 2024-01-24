@@ -79,12 +79,10 @@ def drawGeometry(geoType, planeEnt, pointEnt, slotShape, size_cm, length, direct
         if geoType == dialogID.preview_Name:
             # the new body type uses a full sketch type because the circular pattern in sketch is more comfort then the circular pattern on body
             sk, startPoint = drawSketch(planeEnt, pointEnt, config.attr_previewSketch, size_cm)
-            #drawSlotToSketch(sk, startPoint, slotShape, size_cm)
             body = drawBody(sk, length, direction)
         elif geoType == dialogID.newBody_Name:
             # the new body type uses a full sketch type because the circular pattern in sketch is more comfort then the circular pattern on body
             sk, startPoint = drawSketch(planeEnt, pointEnt, config.attr_fullSketch, size_cm)
-            #drawSlotToSketch(sk, startPoint, slotShape, size_cm)
             body = drawBody(sk, length, direction)
         return sk, body
     except:
@@ -139,7 +137,7 @@ def drawSketch(planeEnt, pointEnt, sketchType, size_cm) -> (adsk.fusion.Sketch, 
             horizontalCenterLine = skLines.addByTwoPoints(point_center_h1,point_center_h2)
             sketchConstraints.addHorizontal(horizontalCenterLine)
             sketchConstraints.addMidPoint(skPnt, horizontalCenterLine)
-            horizontalCenterLine.isCenterLine = True
+            horizontalCenterLine.isConstruction = True
 
             # draw the vertical center line with the vertical constraint
             # we start at the "end of the line" and goes to the sketch center
@@ -149,7 +147,7 @@ def drawSketch(planeEnt, pointEnt, sketchType, size_cm) -> (adsk.fusion.Sketch, 
             verticalCenterLine = skLines.addByTwoPoints(point_center_v1,point_center_v2)
             sketchConstraints.addVertical(verticalCenterLine)
             sketchConstraints.addMidPoint(skPnt, verticalCenterLine)
-            verticalCenterLine.isCenterLine = True 
+            verticalCenterLine.isConstruction = True 
 
             # 
             sketchPoints = config.quarterSketchPoints
@@ -189,6 +187,19 @@ def drawSketch(planeEnt, pointEnt, sketchType, size_cm) -> (adsk.fusion.Sketch, 
                     
             endPoint = adsk.core.Point3D.create( sketchPoints.point_y[0], size/2 - sketchPoints.point_x[0], 0 )
             line = skLines.addByTwoPoints(line.endSketchPoint, endPoint)
+
+            # circular pattern in sketch to create full sketch
+            curves = sk.findConnectedCurves(line)
+            curveList = []
+            for curve in curves:
+                curveList.append(curve)
+            futil.log('Sketch curves type: ' + curves.objectType)
+            #circularFeatInp.quantity = adsk.core.ValueInput.createByReal(4)
+            #circularFeatInput.totalAngle = adsk.core.ValueInput.createByString('180 deg')
+            circularInp = sk.geometricConstraints.createCircularPatternInput(curveList,skPnt)
+            circularInp.quantity = adsk.core.ValueInput.createByReal(4)
+            sk.geometricConstraints.addCircularPattern(circularInp)
+
             """
             # draw the right vertical outer line with constraint
             point_v2 = adsk.core.Point3D.create(pointProfilCenter.x + size/2, pointProfilCenter.y + size/2 - arcRadius, 0)
