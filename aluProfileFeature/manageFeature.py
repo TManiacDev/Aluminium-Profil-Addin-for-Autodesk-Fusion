@@ -67,7 +67,7 @@ def createFromInput( planeInput: adsk.core.SelectionCommandInput,
         futil.log('Failed:\n{}'.format(traceback.format_exc()))
         
 # Draws the shapes based on the input argument.     
-def drawGeometry(geoType, planeEnt, pointEnt, shape, size_cm, length, direction) -> (adsk.fusion.Sketch, adsk.fusion.ExtrudeFeature):
+def drawGeometry(geoType, planeEnt, pointEnt, slotShape, size_cm, length, direction) -> (adsk.fusion.Sketch, adsk.fusion.ExtrudeFeature):
     """Draw the element
     
     The function will call the steps to create the visual element
@@ -78,15 +78,13 @@ def drawGeometry(geoType, planeEnt, pointEnt, shape, size_cm, length, direction)
         body = None
         if geoType == dialogID.preview_Name:
             # the new body type uses a full sketch type because the circular pattern in sketch is more comfort then the circular pattern on body
-            # TODO: we need the real sketch type, today giving the shape is the wrong way
             sk, startPoint = drawSketch(planeEnt, pointEnt, config.attr_previewSketch, size_cm)
-            drawSlotToSketch(sk, startPoint, shape)
+            #drawSlotToSketch(sk, startPoint, slotShape, size_cm)
             body = drawBody(sk, length, direction)
         elif geoType == dialogID.newBody_Name:
             # the new body type uses a full sketch type because the circular pattern in sketch is more comfort then the circular pattern on body
-            # TODO: we need the real sketch type, today giving the shape is the wrong way
             sk, startPoint = drawSketch(planeEnt, pointEnt, config.attr_fullSketch, size_cm)
-            drawSlotToSketch(sk, startPoint, shape)
+            #drawSlotToSketch(sk, startPoint, slotShape, size_cm)
             body = drawBody(sk, length, direction)
         return sk, body
     except:
@@ -121,6 +119,8 @@ def drawSketch(planeEnt, pointEnt, sketchType, size_cm) -> (adsk.fusion.Sketch, 
             # ######################################
             # this sketch holds the full profile
             # ######################################
+            sk.attributes.add(config.attr_SketchStyleGroup, config.attr_SketchStyle, config.attr_previewSketch)
+            sk.attributes.add(config.attr_SketchStyleGroup, config.attr_CustomSketch, 'False')
             size = size_cm / 10
             # in any other case we create a profile without a slice
             skLines = sk.sketchCurves.sketchLines
@@ -130,13 +130,66 @@ def drawSketch(planeEnt, pointEnt, sketchType, size_cm) -> (adsk.fusion.Sketch, 
             arcRadius = size / 10           
 
             # starting with the projected point and goes to x positiv => horizontal 
-            pointProfilCenter = adsk.core.Point3D.create(skPnt.geometry.x, skPnt.geometry.y, 0)
+            pointProfilCenter = adsk.core.Point3D.create(skPnt.geometry.x, skPnt.geometry.y, 0)           
+            
+            # draw the horizontal line with the horizontal constraint
+            # make it as center line
+            point_center_h1 = adsk.core.Point3D.create(pointProfilCenter.x - size/2, pointProfilCenter.y, 0)
+            point_center_h2 = adsk.core.Point3D.create(pointProfilCenter.x + size/2, pointProfilCenter.y, 0)
+            horizontalCenterLine = skLines.addByTwoPoints(point_center_h1,point_center_h2)
+            sketchConstraints.addHorizontal(horizontalCenterLine)
+            sketchConstraints.addMidPoint(skPnt, horizontalCenterLine)
+            horizontalCenterLine.isCenterLine = True
+
+            # draw the vertical center line with the vertical constraint
+            # we start at the "end of the line" and goes to the sketch center
+            # so we will come back at the end of this line later
+            point_center_v1 = adsk.core.Point3D.create(pointProfilCenter.x, pointProfilCenter.y - size/2, 0) 
+            point_center_v2 = adsk.core.Point3D.create(pointProfilCenter.x, pointProfilCenter.y + size/2, 0) 
+            verticalCenterLine = skLines.addByTwoPoints(point_center_v1,point_center_v2)
+            sketchConstraints.addVertical(verticalCenterLine)
+            sketchConstraints.addMidPoint(skPnt, verticalCenterLine)
+            verticalCenterLine.isCenterLine = True 
+
+            # 
+            sketchPoints = config.quarterSketchPoints
+            sketchSize = sketchPoints.size()
+            startPoint = adsk.core.Point3D.create(size/2 - sketchPoints.point_x[0], sketchPoints.point_y[0], 0 )
+            line = None
+            for i in sketchPoints.pointPos:
+                #startPoint = adsk.core.Point3D.create(size/2 - point_x[i], point_y[i], 0 )
+                endPoint = adsk.core.Point3D.create(size/2 - sketchPoints.point_x[i+1], sketchPoints.point_y[i+1], 0 )
+                if line:
+                    line = skLines.addByTwoPoints(line.endSketchPoint, endPoint)
+                    futil.log('Sketch: line with end point')
+                else:
+                    line = skLines.addByTwoPoints(startPoint, endPoint)
+                    futil.log('Sketch: line without end point')
+            
+            # outer line to the corner arc                    
+            point_v1 = adsk.core.Point3D.create(pointProfilCenter.x + size/2, pointProfilCenter.y + size/2 - arcRadius, 0) 
+            outerVerticalLine = skLines.addByTwoPoints(line.endSketchPoint, point_v1)
 
             # draw the starting arc at top right corner
-            arcCenter = adsk.core.Point3D.create(pointProfilCenter.x + size/2 - arcRadius, pointProfilCenter.y - size/2 + arcRadius , 0)  
-            arcStartpoint = adsk.core.Point3D.create(pointProfilCenter.x + size/2 - arcRadius, pointProfilCenter.y - size/2 , 0)
-            arc_1 = sketchArcs.addByCenterStartSweep(arcCenter,arcStartpoint,math.radians(90))
+            arcCenter = adsk.core.Point3D.create(pointProfilCenter.x + size/2 - arcRadius, pointProfilCenter.y + size/2 - arcRadius , 0)  
+            arc_1 = sketchArcs.addByCenterStartSweep(arcCenter,outerVerticalLine.endSketchPoint,math.radians(90))
 
+            # sketchSize = 5 ?
+            futil.log('Sketch Size: ' + str(sketchSize) )
+            line = None
+            for i in sketchPoints.pointPos:
+                # we use switched x and y to build up the second half of the quarter
+                endPoint = adsk.core.Point3D.create(sketchPoints.point_y[sketchSize -i],size/2 -  sketchPoints.point_x[sketchSize - i], 0 )
+                if line:
+                    line = skLines.addByTwoPoints(line.endSketchPoint, endPoint)
+                    futil.log('Sketch: line with end point')
+                else:
+                    line = skLines.addByTwoPoints(arc_1.endSketchPoint, endPoint)
+                    futil.log('Sketch: line with arc end point')
+                    
+            endPoint = adsk.core.Point3D.create( sketchPoints.point_y[0], size/2 - sketchPoints.point_x[0], 0 )
+            line = skLines.addByTwoPoints(line.endSketchPoint, endPoint)
+            """
             # draw the right vertical outer line with constraint
             point_v2 = adsk.core.Point3D.create(pointProfilCenter.x + size/2, pointProfilCenter.y + size/2 - arcRadius, 0)
             outerVerticalLine1 = skLines.addByTwoPoints(arc_1.endSketchPoint,point_v2)
@@ -200,6 +253,7 @@ def drawSketch(planeEnt, pointEnt, sketchType, size_cm) -> (adsk.fusion.Sketch, 
                 dimSize = sketchDimensions.addOffsetDimension(outerVerticalLine1, outerVerticalLine2, textPoint)
                 textPoint = adsk.core.Point3D.create(arc_1.centerSketchPoint.geometry.x + 0.5,arc_1.centerSketchPoint.geometry.y - 0.5, 0)
                 dimArc = sketchDimensions.addRadialDimension(arc_1,textPoint)
+            """
         elif sketchType == 'Half of Quarter':
             # ######################################
             # the Half of a Quarter is enough
@@ -209,6 +263,8 @@ def drawSketch(planeEnt, pointEnt, sketchType, size_cm) -> (adsk.fusion.Sketch, 
             # ######################################
             # standard is to hold the quarter sketch
             # ######################################
+
+            # rework with point collection 
             size = size_cm / 10
             # in any other case we create a profile without a slice
             skLines = sk.sketchCurves.sketchLines
@@ -221,21 +277,25 @@ def drawSketch(planeEnt, pointEnt, sketchType, size_cm) -> (adsk.fusion.Sketch, 
             sk.attributes.add(config.attr_SketchStyleGroup, config.attr_CustomSketch, 'False')
             # we use quarter as sketch
             # starting with the projected point and goes to x positiv => horizontal 
-            pointProfilCenter = adsk.core.Point3D.create(skPnt.geometry.x, skPnt.geometry.y, 0)
-            point_center_h = adsk.core.Point3D.create(pointProfilCenter.x + size/2, pointProfilCenter.y, 0)
-            point_center_v = adsk.core.Point3D.create(pointProfilCenter.x, pointProfilCenter.y + size/2, 0)
+            pointProfilCenter = adsk.core.Point3D.create(skPnt.geometry.x, skPnt.geometry.y, 0)           
             
             # draw the horizontal line with the horizontal constraint
             # make it as center line
-            horizontalCenterLine = skLines.addByTwoPoints(skPnt,point_center_h)
+            point_center_h1 = adsk.core.Point3D.create(pointProfilCenter.x - size/2, pointProfilCenter.y, 0)
+            point_center_h2 = adsk.core.Point3D.create(pointProfilCenter.x + size/2, pointProfilCenter.y, 0)
+            horizontalCenterLine = skLines.addByTwoPoints(point_center_h1,point_center_h2)
             sketchConstraints.addHorizontal(horizontalCenterLine)
+            sketchConstraints.addMidPoint(skPnt, horizontalCenterLine)
             horizontalCenterLine.isCenterLine = True
 
             # draw the vertical center line with the vertical constraint
             # we start at the "end of the line" and goes to the sketch center
             # so we will come back at the end of this line later
-            verticalCenterLine = skLines.addByTwoPoints(point_center_v,horizontalCenterLine.startSketchPoint)
+            point_center_v1 = adsk.core.Point3D.create(pointProfilCenter.x, pointProfilCenter.y - size/2, 0) 
+            point_center_v2 = adsk.core.Point3D.create(pointProfilCenter.x, pointProfilCenter.y + size/2, 0) 
+            verticalCenterLine = skLines.addByTwoPoints(point_center_v1,point_center_v2)
             sketchConstraints.addVertical(verticalCenterLine)
+            sketchConstraints.addMidPoint(skPnt, verticalCenterLine)
             verticalCenterLine.isCenterLine = True
             
             # draw the vertical outer line with constraint
@@ -268,20 +328,37 @@ def drawSketch(planeEnt, pointEnt, sketchType, size_cm) -> (adsk.fusion.Sketch, 
         futil.log('Failed:\n{}'.format(traceback.format_exc()))    
 
 # add the slot to sketch
-def drawSlotToSketch(sketch: adsk.fusion.Sketch, startPoint: adsk.fusion.SketchPoint, slotType, planeEnt = None):
+def drawSlotToSketch(sketch: adsk.fusion.Sketch, startPoint: adsk.fusion.SketchPoint, slotType, size_cm, planeEnt = None):
     """Draw the slot sketch"""
 
     try:
         # Get the design.
         app = adsk.core.Application.get()
         des = adsk.fusion.Design.cast(app.activeProduct)
+        size = size_cm / 10
 
-        sketchType = sketch.attributes.itemByName(config.attr_SketchStyleGroup, config.attr_SketchStyle)
-        if sketchType == config.attr_quarterSketch:
-            # using quarter sketch it is best way to use a second scetch for the slot
-        
-            # Create a new sketch plane.
-            slotsketch = des.rootComponent.sketches.add(planeEnt)   
+        sketchType = '???'
+        sketchType = sketch.attributes.itemByName(config.attr_SketchStyleGroup, config.attr_SketchStyle).value
+        if (sketchType == config.attr_fullSketch) | (sketchType == config.attr_previewSketch):
+            futil.log('Sketch: ' + sketch.name + ' -> Sketch Type : ' + sketchType  ) 
+            skLines = sketch.sketchCurves.sketchLines  
+
+            pointPos = [0,   1,    2,    3,     4,    5,     6 ]  # this is i+1
+            point_x = [0.00, 0.45, 0.45, 1.2,   1.2,  0.45,  0.45,  0.00 ]
+            point_y = [0.40, 0.40, 1.00, 0.4,  -0.4, -1.00, -0.40, -0.40  ]
+            startPoint = adsk.core.Point3D.create(size/2 - point_x[0], point_y[0], 0 )
+            line = None
+            for i in pointPos:
+                #startPoint = adsk.core.Point3D.create(size/2 - point_x[i], point_y[i], 0 )
+                endPoint = adsk.core.Point3D.create(size/2 - point_x[i+1], point_y[i+1], 0 )
+                if line:
+                    line = skLines.addByTwoPoints(line.endSketchPoint, endPoint)
+                    futil.log('Sketch: line with end point')
+                else:
+                    line = skLines.addByTwoPoints(startPoint, endPoint)
+                    futil.log('Sketch: line without end point')
+        else: 
+            futil.log('Sketch: ' + sketch.name + ' -> Failed Sketch Type ' + sketchType) 
 
     except:
         futil.log('Failed:\n{}'.format(traceback.format_exc()))   

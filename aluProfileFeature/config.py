@@ -49,3 +49,21 @@ attr_fullSketch = 'fullSketch'
 
 attr_quarterSketch = 'quarterSketch'
 """ the sketch is just a quarter of the profile """
+
+
+# ######################################
+# classes to hold the sketch points
+# ######################################
+class quarterSketchPoints:
+    """ a simple class to hold the point definitions for the profile sketch """
+    # TODO this is today just a idea
+
+    point_x0 = 1.2
+    """ the starting point has only a x value because we start at the hirzontal center line """
+    pointPos = [ 0,    1,    2,     3, ]
+    point_x = [  1.2,  1.2,  0.45,  0.45,  0.00 ]
+    point_y = [  0.0,  0.4,  1.00,  0.40,  0.40 ]
+
+    def size():
+        """ returns the number of End Points """
+        return 4
