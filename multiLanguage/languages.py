@@ -1,7 +1,7 @@
 """
 This is a simple support for translation
 """
-
+import os
 from . import english
 from . import german
 from  adsk.core import UserLanguages as fusionUserLanguages
@@ -32,7 +32,7 @@ class Language:
         self.__language = default.lower()
         self.__unknownCounter = 0
         self.__parentDir = parentDir
-        self.__xmlDictionary = None
+        self.__readDataFromXmlFile("english.xml")
 
     @property
     def directory(self) -> bool:
@@ -47,7 +47,10 @@ class Language:
         self.__parentDir = parentDir
 
     def __readDataFromXmlFile(self, filePath):
-        self.__xmlDictionary = xmlElementTree.parse(filePath)
+        try:
+           self.__xmlDictionary =  xmlElementTree.parse(f'{os.path.dirname(os.path.abspath(__file__))}\{filePath}')
+        except:
+            self.__xmlDictionary = None
         
     def dictonaryByAdskLanguage(self):
         #  hmmm wie weiter ???
@@ -115,9 +118,14 @@ class Language:
         return dictReturn
 
     def getTranslation2(self, searchEntry):
-        if self.__parentDir == None:
-            dictReturn = 'no directory'
-        else:
-            dictReturn = 'this does nothing'
+        if self.__xmlDictionary == None:
+            dictReturn = 'no xml directory'
+        else:            
+            xmlRoot = self.__xmlDictionary.getroot()
+            searchQuery = "./translation[@name='" + searchEntry + "']"
+            try:
+                dictReturn = xmlRoot.find(searchQuery).text
+            except:
+                dictReturn = 'unkown word on xml'
         return dictReturn
     

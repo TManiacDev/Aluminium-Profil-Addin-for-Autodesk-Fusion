@@ -2,6 +2,8 @@ import adsk.core, adsk.fusion
 import os, math, traceback 
 from ....lib import fusion360utils as futil 
 
+from ....multiLanguage import languages as translation
+
 from .. import config as featureConfig
 from .... import config as addinConfig
 
@@ -21,6 +23,8 @@ _editedCustomFeature: adsk.fusion.CustomFeature = None
 _restoreTimelineObject: adsk.fusion.TimelineObject = None
 _isRolledForEdit = False
 
+_dict = translation.Language('english')
+
 def startCreateCommand(ui: adsk.core.UserInterface) -> adsk.core.CommandDefinition:
     """ create the entry for the create command """
     
@@ -30,8 +34,21 @@ def startCreateCommand(ui: adsk.core.UserInterface) -> adsk.core.CommandDefiniti
     if existingDef:
         existingDef.deleteMe()
 
-    createCmdDef = ui.commandDefinitions.addButtonDefinition(featureConfig.CREATE_CMD_ID, featureConfig.CREATE_CMD_NAME, featureConfig.CREATE_CMD_Description, ICON_FOLDER)
+    # createCmdDef = ui.commandDefinitions.addButtonDefinition(featureConfig.CREATE_CMD_ID, 
+    #                                                          featureConfig.CREATE_CMD_NAME, 
+    #                                                          featureConfig.CREATE_CMD_Description, 
+    #                                                          ICON_FOLDER)    
+
+    createCmdDef = ui.commandDefinitions.addButtonDefinition(featureConfig.CREATE_CMD_ID, 
+                                                             _dict.getTranslation2('createProfileCommand_Name'), 
+                                                             _dict.getTranslation2('createProfileCommand_Desc'), 
+                                                             ICON_FOLDER)
     
+    text = _dict.getTranslation2('createProfileCommand_Name')
+    futil.log(f'new dictionary test: {text}') 
+
+    #futil.log(f'Dictionary: {_dict.xmlDictionary}') 
+
     # Define an event handler for the command created event. It will be called when the button is clicked. 
     futil.add_handler(createCmdDef.commandCreated, createCommand_created) 
  

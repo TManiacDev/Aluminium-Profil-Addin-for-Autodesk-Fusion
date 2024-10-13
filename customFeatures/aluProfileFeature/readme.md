@@ -7,6 +7,8 @@ Das CustomFeature wird einige Daten als Parameter speichern. Gerade bei den Abma
 
 Es wird neben der generischen Form auch eine dxf-Unterstützung geben.
 
+## Aktueller Stand und so
+Der Create Dialog funktioniert und man kann ein einfaches Profil erzeugen. Noch ist das erzeugte Element kein CustomFeature
 
 
 
