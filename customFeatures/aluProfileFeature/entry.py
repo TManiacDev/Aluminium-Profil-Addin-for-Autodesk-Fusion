@@ -43,6 +43,5 @@ def stop():
         command.stopEditCommand(_ui)
         command.stopCreateCommand(_ui)
 
-
     except:
         futil.handle_error('stop feature')
