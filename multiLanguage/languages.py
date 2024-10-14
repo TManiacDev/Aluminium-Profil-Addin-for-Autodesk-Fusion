@@ -29,6 +29,7 @@ class Language:
     This class support unknwon translations on a very simple way
     """
     def __init__(self, default: str = 'english', parentDir:str = None):
+        self.__showMissingTranslation = False
         self.__language = default.lower()
         self.__unknownCounter = 0
         self.__parentDir = parentDir
@@ -80,16 +81,19 @@ class Language:
         return self.__xmlDictionaries[pos].getroot()
         
 
-    def getTranslation(self, searchEntry):
+    def getTranslation(self, searchEntry:str) -> str:
         if self.__xmlDictionaries == []:
             dictReturn = 'no xml directory'
         else:            
             # we need a good way to query all dictionaries in reverse because the first dictionary is the standard dictionary
-            xmlRoot = self.__xmlDictionaries[1].getroot()
+            xmlRoot = self.__xmlDictionaries[0].getroot()
             searchQuery = "./translation[@name='" + searchEntry + "']"
             try:
-                dictReturn = xmlRoot.find(searchQuery).text
+                dictReturn = xmlRoot.find(searchQuery).text.strip()
             except:
-                dictReturn = 'unkown word on xml'
+                if self.__showMissingTranslation:
+                    dictReturn = searchEntry + ' (unkown word on xml)'
+                else:
+                    dictReturn = searchEntry
         return dictReturn
     

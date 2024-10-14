@@ -25,7 +25,7 @@ _editedCustomFeature: adsk.fusion.CustomFeature = None
 _restoreTimelineObject: adsk.fusion.TimelineObject = None
 _isRolledForEdit = False
 
-_dict = translation.Language( 'english', ICON_FOLDER) #os.path.dirname(os.path.abspath(__file__)) )# + "\\resources"
+_dict = translation.Language( 'english', ICON_FOLDER)
 
 def startCreateCommand(ui: adsk.core.UserInterface) -> adsk.core.CommandDefinition:
     """ create the entry for the create command """
@@ -36,22 +36,10 @@ def startCreateCommand(ui: adsk.core.UserInterface) -> adsk.core.CommandDefiniti
     if existingDef:
         existingDef.deleteMe()
 
-    # createCmdDef = ui.commandDefinitions.addButtonDefinition(featureConfig.CREATE_CMD_ID, 
-    #                                                          featureConfig.CREATE_CMD_NAME, 
-    #                                                          featureConfig.CREATE_CMD_Description, 
-    #                                                          ICON_FOLDER)    
-
-
-    futil.log(f'new dictionary test: \n  -> {_dict.directory} \n  -> {_dict.xmlPaths[0]} \n  -> {_dict.xmlPaths[1]}') 
-    myDict = _dict.getDictName(0)
-    futil.log(f'#####\n {myDict.attrib}\n####')
-
     createCmdDef = ui.commandDefinitions.addButtonDefinition(featureConfig.CREATE_CMD_ID, 
-                                                             _dict.getTranslation('createProfileCommand_Name'), 
+                                                             _dict.getTranslation('Create Aluminium Profile'), 
                                                              _dict.getTranslation('createProfileCommand_Desc'), 
                                                              ICON_FOLDER)
-    
-    text = _dict.getTranslation('createProfileCommand_Name')
 
     #futil.log(f'Dictionary: {_dict.xmlDictionary}') 
 
@@ -192,46 +180,58 @@ def createCommandView(args: adsk.core.CommandCreatedEventArgs, featureParams: ad
  
     # Create the selector for the plane. 
     if planeSelect == None:
-        planeSelect = inputs.addSelectionInput(dialogID.planeSelect, 'Select Plane', 'Select Plane') 
+        inputName =  _dict.getTranslation('Select Plane')
+        planeSelect = inputs.addSelectionInput(dialogID.planeSelect, inputName, inputName) 
         planeSelect.addSelectionFilter('PlanarFaces') 
         planeSelect.addSelectionFilter('ConstructionPlanes') 
         planeSelect.setSelectionLimits(1,1) 
+        planeSelect.tooltip =  _dict.getTranslation('selectPlane_Desc')
  
     # Create the selector for the points. 
     if pointSelect == None:
-        pointSelect = inputs.addSelectionInput(dialogID.pointSelect, 'Select Points', 'Select Points') 
+        inputName =  _dict.getTranslation('Select Point')
+        pointSelect = inputs.addSelectionInput(dialogID.pointSelect, inputName, inputName) 
         pointSelect.addSelectionFilter('Vertices') 
         pointSelect.addSelectionFilter('ConstructionPoints') 
         pointSelect.addSelectionFilter('SketchPoints') 
         pointSelect.setSelectionLimits(1,1) 
         pointSelect.isEnabled = False 
+        pointSelect.tooltip =  _dict.getTranslation('selectPoint_Desc')
 
     # Create the list for types of shapes.
-    slotTypeList = inputs.addDropDownCommandInput(dialogID.slotTypeList, 'Slot Type', adsk.core.DropDownStyles.LabeledIconDropDownStyle)
+    inputName =  _dict.getTranslation('Select Profile Type')
+    slotTypeList = inputs.addDropDownCommandInput(dialogID.slotTypeList, inputName, adsk.core.DropDownStyles.LabeledIconDropDownStyle)
     slotTypeList.listItems.add('I-Type 8', True, ICON_FOLDER + '/profiles', -1)
     slotTypeList.listItems.add('None', True, ICON_FOLDER + '/None', -1)
+    slotTypeList.tooltip = _dict.getTranslation('selecProfileType_Desc')
 
-    sizeSpinner = inputs.addIntegerSpinnerCommandInput(dialogID.sizeSpinner, 'Profile Size' , 10, 100, 5, 40)
-    slotSizeSpinner = inputs.addIntegerSpinnerCommandInput(dialogID.slotSizeSpinner, 'Slot Size' , 4, 10, 2, 8)
+    inputName =  _dict.getTranslation('Size')
+    sizeSpinner = inputs.addIntegerSpinnerCommandInput(dialogID.sizeSpinner, inputName , 10, 100, 5, 40)
+    inputName =  _dict.getTranslation('Slot Size')
+    slotSizeSpinner = inputs.addIntegerSpinnerCommandInput(dialogID.slotSizeSpinner, inputName , 4, 10, 2, 8)
 
     if distanceInput == None:
+        inputName =  _dict.getTranslation('Distance')
         initValue = adsk.core.ValueInput.createByString('10.0 cm')
-        distanceInput = inputs.addDistanceValueCommandInput(dialogID.distanceInput, 'Distance', initValue)
+        distanceInput = inputs.addDistanceValueCommandInput(dialogID.distanceInput, inputName, initValue)
         distanceInput.isEnabled = False
         distanceInput.isVisible = False
 
     # Create the list for dircetion type.
-    directTypeList = inputs.addDropDownCommandInput(dialogID.directionTypeList, 'Direction', adsk.core.DropDownStyles.LabeledIconDropDownStyle)
-    directTypeList.listItems.add('One Side', True, addinConfig.FUSION_UI_RESOURCES_FOLDER + '/Modeling/LeftSide', -1)
-    directTypeList.listItems.add('Both Side', False, addinConfig.FUSION_UI_RESOURCES_FOLDER + '/Modeling/BothSide', -1)
-    directTypeList.listItems.add('Symetric', False, addinConfig.FUSION_UI_RESOURCES_FOLDER + '/Modeling/Symmetric', -1)
+    directTypeList = inputs.addDropDownCommandInput(dialogID.directionTypeList, 
+                                                    _dict.getTranslation('Direction'), 
+                                                    adsk.core.DropDownStyles.LabeledIconDropDownStyle)
+    directTypeList.listItems.add(_dict.getTranslation('One Side'), True, addinConfig.FUSION_UI_RESOURCES_FOLDER + '/Modeling/LeftSide', -1)
+    directTypeList.listItems.add(_dict.getTranslation('Both Side'), False, addinConfig.FUSION_UI_RESOURCES_FOLDER + '/Modeling/BothSide', -1)
+    directTypeList.listItems.add(_dict.getTranslation('Symetric'), False, addinConfig.FUSION_UI_RESOURCES_FOLDER + '/Modeling/Symmetric', -1)
 
     
     # Create the list for dircetion type.
-    featureTypeList = inputs.addDropDownCommandInput(dialogID.featureTypeList, 'Operation', adsk.core.DropDownStyles.LabeledIconDropDownStyle)
-    featureTypeList.listItems.add(dialogID.newBody_Name, True) #, addinConfig.FUSION_UI_RESOURCES_FOLDER + '/Modeling/LeftSide', -1)
-    featureTypeList.listItems.add(dialogID.newComponent_Name, False) #, addinConfig.FUSION_UI_RESOURCES_FOLDER + '/NewComponent', -1)
-    featureTypeList.listItems.add(dialogID.newCustomFeature_Name, False)#, addinConfig.FUSION_UI_RESOURCES_FOLDER + '/Modeling/Symmetric', -1)
+    featureTypeList = inputs.addDropDownCommandInput(dialogID.featureTypeList, _dict.getTranslation('Operation'), adsk.core.DropDownStyles.LabeledIconDropDownStyle)
+    featureTypeList.listItems.add(_dict.getTranslation('New Body'), True) #, addinConfig.FUSION_UI_RESOURCES_FOLDER + '/Modeling/LeftSide', -1)
+    featureTypeList.listItems.add(_dict.getTranslation('New Component'), False) #, addinConfig.FUSION_UI_RESOURCES_FOLDER + '/NewComponent', -1)
+    featureTypeList.listItems.add(_dict.getTranslation('New Feature'), False)#, addinConfig.FUSION_UI_RESOURCES_FOLDER + '/Modeling/Symmetric', -1)
+    featureTypeList.tooltip = _dict.getTranslation('operation_Desc')
 
 # This event handler is called when the user clicks the OK button in the command dialog or 
 # is immediately called after the created event not command inputs were created for the dialog.

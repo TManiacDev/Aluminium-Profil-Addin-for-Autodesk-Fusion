@@ -1,5 +1,32 @@
 <?xml version="1.0"?>
 <dictionary name="AluProfileDictionary" language="english" version="1.0">
-    <translation name="createProfileCommand_Name">Create Alu Profile</translation>
-    <translation name="createProfileCommand_Desc">Dialog to create a Alu Profile on a path</translation>
+    <translation name="Create Aluminium Profile">
+        Create Alu Profile
+    </translation>
+    <translation name="createProfileCommand_Desc">
+        Dialog to create a Alu Profile on a path
+    </translation>
+    <translation name="Select Plane">
+        Select Plane
+    </translation>
+    <translation name="selectPlane_Desc">
+        Select the start plane to create the profile
+    </translation>
+    <translation name="Select Point">
+        Select Pivot Point
+    </translation>
+    <translation name="selectPoint_Desc">
+        Today this will be the center point of the profile.
+        Coming soon: there will be a anchor selection on the profile too.
+    </translation>
+    <translation name="Select Profile Type">
+        Profile Type
+    </translation>
+    <translation name="selecProfileType_Desc">
+        There will be a profile manager to add custom profiles.
+    </translation>
+    <translation name="operation_Desc">
+        New Body and New Component are like the default operations on Fusion.
+        New Feature uses the customFeature to create a simple editable element.
+    </translation>
 </dictionary>
