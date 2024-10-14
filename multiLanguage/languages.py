@@ -32,7 +32,24 @@ class Language:
         self.__language = default.lower()
         self.__unknownCounter = 0
         self.__parentDir = parentDir
-        self.__readDataFromXmlFile("english.xml")
+        dictName = default + ".xml"
+        self.__xmlDictionaries = []
+        self.xmlPaths = []
+        # load standard dictionary
+        # f'{os.path.dirname(os.path.abspath(__file__))}\
+        # load specialiced dictionary
+        if parentDir != None:
+            pathName = parentDir  + dictName
+            self.xmlPaths.append(pathName)
+            self.nextDict = self.__readDataFromXmlFile(pathName)
+            self.__xmlDictionaries.append(self.nextDict)
+        else:
+            self.nextDict = "what is happen"
+
+            
+        standardDictName = os.path.dirname(os.path.abspath(__file__)) + '\\' + dictName
+        self.xmlPaths.append(standardDictName)
+        self.__xmlDictionaries.append(self.__readDataFromXmlFile(standardDictName))
 
     @property
     def directory(self) -> bool:
@@ -48,80 +65,27 @@ class Language:
 
     def __readDataFromXmlFile(self, filePath):
         try:
-           self.__xmlDictionary =  xmlElementTree.parse(f'{os.path.dirname(os.path.abspath(__file__))}\{filePath}')
+            xmlDictionary =  xmlElementTree.parse(filePath)
+            self.xmlError = xmlElementTree.ParseError
+            return xmlDictionary
         except:
-            self.__xmlDictionary = None
+            self.xmlError = xmlElementTree.ParseError
+            return None
         
     def dictonaryByAdskLanguage(self):
         #  hmmm wie weiter ???
         return None
 
+    def getDictName(self, pos):
+        return self.__xmlDictionaries[pos].getroot()
         
-    def getTranslation(self, searchEntry, subDictionary: str = 'standard'):
-        if subDictionary.lower() == 'standard':
-            try:
-                dictReturn = language[self.__language].standardWords[searchEntry]
-            except:
-                dictReturn = 'unknown word (' +str(self.__unknownCounter) + ')'
-                self.__unknownCounter += 1          
-        elif subDictionary.lower() == 'addin':
-            try:
-                dictReturn = language[self.__language].interfaceName[searchEntry]
-            except:
-                dictReturn = 'unknown word (' +str(self.__unknownCounter) + ')'  
-                self.__unknownCounter += 1    
-        elif subDictionary.lower() == 'createbycoordcommand':
-            try:
-                dictReturn = language[self.__language].createByCoordCommand[searchEntry]
-            except:
-                dictReturn = 'unknown word (' +str(self.__unknownCounter) + ')'
-                self.__unknownCounter += 1         
-        elif subDictionary.lower() == 'analyzemotioncommand':
-            try:
-                dictReturn = language[self.__language].analyzeMotionCommand[searchEntry]
-            except:
-                dictReturn = 'unknown word (' +str(self.__unknownCounter) + ')'
-                self.__unknownCounter += 1       
-        elif subDictionary.lower() == 'attribute':
-            try:
-                dictReturn = language[self.__language].attributeName[searchEntry]
-            except:
-                dictReturn = 'unknown word (' +str(self.__unknownCounter) + ')'
-                self.__unknownCounter += 1
-        elif subDictionary.lower() == 'component':
-            try:
-                dictReturn = language[self.__language].componentName[searchEntry]
-            except:
-                dictReturn = 'unknown word (' +str(self.__unknownCounter) + ')'
-                self.__unknownCounter += 1
-        elif subDictionary.lower() == 'construction':
-            try:
-                dictReturn = language[self.__language].constructionName[searchEntry]
-            except:
-                dictReturn = 'unknown word (' +str(self.__unknownCounter) + ')'
-                self.__unknownCounter += 1
-        elif subDictionary.lower() == 'joint':
-            try:
-                dictReturn = language[self.__language].jointName[searchEntry]
-            except:
-                dictReturn = 'unknown word (' +str(self.__unknownCounter) + ')'
-                self.__unknownCounter += 1
-        elif subDictionary.lower() == 'customfeature':
-            try:
-                dictReturn = language[self.__language].customFeature[searchEntry]
-            except:
-                dictReturn = 'unknown word (' +str(self.__unknownCounter) + ')'
-                self.__unknownCounter += 1
-        else:
-            dictReturn = 'unkwon dictionary'                
 
-        return dictReturn
-
-    def getTranslation2(self, searchEntry):
-        if self.__xmlDictionary == None:
+    def getTranslation(self, searchEntry):
+        if self.__xmlDictionaries == []:
             dictReturn = 'no xml directory'
         else:            
-            xmlRoot = self.__xmlDictionary.getroot()
+            # we need a good way to query all dictionaries in reverse because the first dictionary is the standard dictionary
+            xmlRoot = self.__xmlDictionaries[1].getroot()
             searchQuery = "./translation[@name='" + searchEntry + "']"
             try:
                 dictReturn = xmlRoot.find(searchQuery).text

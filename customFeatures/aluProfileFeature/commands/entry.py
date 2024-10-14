@@ -8,7 +8,9 @@ from .. import config as featureConfig
 from .... import config as addinConfig
 
 from . import dialog_IDs as dialogID
-from .. import manageFeature as myFeature
+from ..feature import manageFeature as myFeature
+
+import xml.etree.ElementTree as xmlElementTree
 
 # Resource location for command icons, here we assume a sub folder in this directory named "resources". 
 ICON_FOLDER = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'resources', '') 
@@ -23,7 +25,7 @@ _editedCustomFeature: adsk.fusion.CustomFeature = None
 _restoreTimelineObject: adsk.fusion.TimelineObject = None
 _isRolledForEdit = False
 
-_dict = translation.Language('english')
+_dict = translation.Language( 'english', ICON_FOLDER) #os.path.dirname(os.path.abspath(__file__)) )# + "\\resources"
 
 def startCreateCommand(ui: adsk.core.UserInterface) -> adsk.core.CommandDefinition:
     """ create the entry for the create command """
@@ -39,13 +41,17 @@ def startCreateCommand(ui: adsk.core.UserInterface) -> adsk.core.CommandDefiniti
     #                                                          featureConfig.CREATE_CMD_Description, 
     #                                                          ICON_FOLDER)    
 
+
+    futil.log(f'new dictionary test: \n  -> {_dict.directory} \n  -> {_dict.xmlPaths[0]} \n  -> {_dict.xmlPaths[1]}') 
+    myDict = _dict.getDictName(0)
+    futil.log(f'#####\n {myDict.attrib}\n####')
+
     createCmdDef = ui.commandDefinitions.addButtonDefinition(featureConfig.CREATE_CMD_ID, 
-                                                             _dict.getTranslation2('createProfileCommand_Name'), 
-                                                             _dict.getTranslation2('createProfileCommand_Desc'), 
+                                                             _dict.getTranslation('createProfileCommand_Name'), 
+                                                             _dict.getTranslation('createProfileCommand_Desc'), 
                                                              ICON_FOLDER)
     
-    text = _dict.getTranslation2('createProfileCommand_Name')
-    futil.log(f'new dictionary test: {text}') 
+    text = _dict.getTranslation('createProfileCommand_Name')
 
     #futil.log(f'Dictionary: {_dict.xmlDictionary}') 
 

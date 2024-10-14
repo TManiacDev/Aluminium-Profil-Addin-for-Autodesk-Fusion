@@ -1,0 +1,5 @@
+<?xml version="1.0"?>
+<dictionary name="AluProfileDictionary" language="english" version="1.0">
+    <translation name="createProfileCommand_Name">Create Alu Profile</translation>
+    <translation name="createProfileCommand_Desc">Dialog to create a Alu Profile on a path</translation>
+</dictionary>

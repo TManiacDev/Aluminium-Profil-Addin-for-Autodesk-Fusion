@@ -8,7 +8,7 @@ from . import config
 
 from .commands import entry as command
 
-from . import manageFeature as myFeature
+from .feature import manageFeature as myFeature
 
 _app: adsk.core.Application = None
 _ui: adsk.core.UserInterface = None

@@ -4,10 +4,10 @@ custom feature to work with alu extrudes profiles
 import adsk.core, adsk.fusion
 import math, traceback 
 
-from ...lib import fusion360utils as futil
+from ....lib import fusion360utils as futil
 
-from . import config
-from .commands import dialog_IDs as dialogID
+from .. import config
+from ..commands import dialog_IDs as dialogID
 
 _app: adsk.core.Application = None
 _ui: adsk.core.UserInterface = None
@@ -25,7 +25,7 @@ def create(_app : adsk.core.Application, editCmdDef : adsk.core.CommandDefinitio
     global _myFeatureDef
     _myFeatureDef = adsk.fusion.CustomFeatureDefinition.create(config.FEATURE_ID, 
                                                                config.FEATURE_NAME, 
-                                                                'customFeatures/aluProfileFeature/resources')
+                                                                'customFeatures/aluProfileFeature/feature/resources')
     _myFeatureDef.editCommandId = editCmdDef.id
 
 def createFromInput( planeInput: adsk.core.SelectionCommandInput,
