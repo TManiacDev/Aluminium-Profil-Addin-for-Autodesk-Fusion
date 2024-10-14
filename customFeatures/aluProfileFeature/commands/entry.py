@@ -10,6 +10,7 @@ from .... import config as addinConfig
 from . import dialog_IDs as dialogID
 from ..feature import manageFeature as myFeature
 
+from ....profileLibrary import entry as profileLibrary
 import xml.etree.ElementTree as xmlElementTree
 
 # Resource location for command icons, here we assume a sub folder in this directory named "resources". 
@@ -26,6 +27,7 @@ _restoreTimelineObject: adsk.fusion.TimelineObject = None
 _isRolledForEdit = False
 
 _dict = translation.Language( 'english', ICON_FOLDER)
+_profileLib = profileLibrary.AluProfileLibrary()
 
 def startCreateCommand(ui: adsk.core.UserInterface) -> adsk.core.CommandDefinition:
     """ create the entry for the create command """
@@ -163,7 +165,7 @@ def editCommand_created(args: adsk.core.CommandCreatedEventArgs):
     if editedCustomFeature is None:
         return
     # Get the collection of custom parameters for this custom feature.
-    params = _editedCustomFeature.parameters
+    params = None # _editedCustomFeature.parameters
     createCommandView(args, params)
 
 def createCommandView(args: adsk.core.CommandCreatedEventArgs, featureParams: adsk.fusion.CustomFeatureParameters = None):
@@ -200,15 +202,20 @@ def createCommandView(args: adsk.core.CommandCreatedEventArgs, featureParams: ad
 
     # Create the list for types of shapes.
     inputName =  _dict.getTranslation('Select Profile Type')
-    slotTypeList = inputs.addDropDownCommandInput(dialogID.slotTypeList, inputName, adsk.core.DropDownStyles.LabeledIconDropDownStyle)
-    slotTypeList.listItems.add('I-Type 8', True, ICON_FOLDER + '/profiles', -1)
-    slotTypeList.listItems.add('None', True, ICON_FOLDER + '/None', -1)
+    slotTypeList = inputs.addDropDownCommandInput(dialogID.profileTypeList, inputName, adsk.core.DropDownStyles.LabeledIconDropDownStyle)
     slotTypeList.tooltip = _dict.getTranslation('selecProfileType_Desc')
+    createProfileList(slotTypeList)
+
+    genericGroupInputs = inputs.addGroupCommandInput(dialogID.genericTypeGroup, 'Generic Value Input')
 
     inputName =  _dict.getTranslation('Size')
-    sizeSpinner = inputs.addIntegerSpinnerCommandInput(dialogID.sizeSpinner, inputName , 10, 100, 5, 40)
+    sizeSpinner = genericGroupInputs.children.addIntegerSpinnerCommandInput(dialogID.sizeSpinner, inputName , 10, 100, 5, 40)
     inputName =  _dict.getTranslation('Slot Size')
-    slotSizeSpinner = inputs.addIntegerSpinnerCommandInput(dialogID.slotSizeSpinner, inputName , 4, 10, 2, 8)
+    slotSizeSpinner = genericGroupInputs.children.addIntegerSpinnerCommandInput(dialogID.slotSizeSpinner, inputName , 4, 10, 2, 8)
+
+    libGroupInputs = inputs.addGroupCommandInput(dialogID.libTypeGroup, 'Select from Library')
+    createLibInput(libGroupInputs)
+    libGroupInputs.isVisible = False
 
     if distanceInput == None:
         inputName =  _dict.getTranslation('Distance')
@@ -235,6 +242,30 @@ def createCommandView(args: adsk.core.CommandCreatedEventArgs, featureParams: ad
     featureTypeList.listItems.add(_dict.getTranslation('New Feature'), False)#, addinConfig.FUSION_UI_RESOURCES_FOLDER + '/Modeling/Symmetric', -1)
     featureTypeList.tooltip = _dict.getTranslation('operation_Desc')
 
+def createProfileList(list: adsk.core.DropDownCommandInput):
+    """
+    The list must be created depending on the profile library
+    """
+    allProfiles = _profileLib.getLibNameList()
+    for profile in allProfiles:
+        text = str(profile)
+        FolderName = os.path.join(_profileLib.getFolder(), text, '')
+        #os.path.join(os.path.dirname(os.path.abspath(__file__)), 'resources', '') 
+        list.listItems.add(text, True, FolderName)
+    # we add this at last so it will shown on creation
+    list.listItems.add('None (simple block)', True, ICON_FOLDER + '/None', 0)
+    list.listItems.add('Generic', True, ICON_FOLDER + '/profiles' , 1)
+
+def createLibInput(groupInput: adsk.core.GroupCommandInput):
+    """
+    to add selections depending from the library
+    """
+    # Create the list for dircetion type.
+    directTypeList = groupInput.children.addDropDownCommandInput(dialogID.slotTypeList, 
+                                                                 _dict.getTranslation('Slot Type'), 
+                                                                 adsk.core.DropDownStyles.TextListDropDownStyle)
+
+
 # This event handler is called when the user clicks the OK button in the command dialog or 
 # is immediately called after the created event not command inputs were created for the dialog.
 def createCommand_execute(args: adsk.core.CommandEventArgs):
@@ -253,7 +284,7 @@ def createCommand_execute(args: adsk.core.CommandEventArgs):
     distanceInput: adsk.core.DistanceValueCommandInput = inputs.itemById(dialogID.distanceInput)
     sizeInput: adsk.core.IntegerSpinnerCommandInput = inputs.itemById(dialogID.sizeSpinner)
     slotSizeInput: adsk.core.IntegerSpinnerCommandInput = inputs.itemById(dialogID.slotSizeSpinner)
-    slotTypeInput: adsk.core.DropDownCommandInput = inputs.itemById(dialogID.slotTypeList)
+    slotTypeInput: adsk.core.DropDownCommandInput = inputs.itemById(dialogID.profileTypeList)
     directInput: adsk.core.DropDownCommandInput = inputs.itemById(dialogID.directionTypeList)
     featureTypeInput: adsk.core.DropDownCommandInput = inputs.itemById(dialogID.featureTypeList)
 
@@ -311,7 +342,7 @@ def command_preview(args: adsk.core.CommandEventArgs):
                 size = input.value
             elif input.id == dialogID.distanceInput:
                 length = input.value
-            elif input.id == dialogID.slotTypeList:
+            elif input.id == dialogID.profileTypeList:
                 slotType = input.selectedItem.name
             elif input.id == dialogID.directionTypeList:
                 direction = input.selectedItem.index
@@ -346,6 +377,7 @@ def command_input_changed(args: adsk.core.InputChangedEventArgs):
     planeSelect: adsk.core.SelectionCommandInput = inputs.itemById(dialogID.planeSelect)
     pointSelect: adsk.core.SelectionCommandInput = inputs.itemById(dialogID.pointSelect)
     distanceInput: adsk.core.DistanceValueCommandInput = inputs.itemById(dialogID.distanceInput)
+    profileTypeInput: adsk.core.DropDownCommandInput = inputs.itemById(dialogID.profileTypeList)
     
     # Show and update the distance input when a plane is selected
     if changed_input.id == planeSelect.id:
@@ -367,6 +399,32 @@ def command_input_changed(args: adsk.core.InputChangedEventArgs):
         else:
             distanceInput.isEnabled = False
             distanceInput.isVisible = False
+
+    genericInputGroup: adsk.core.GroupCommandInput = inputs.itemById(dialogID.genericTypeGroup)
+    libGroupInputs: adsk.core.GroupCommandInput = inputs.itemById(dialogID.libTypeGroup)
+    typeList: adsk.core.DropDownCommandInput = inputs.itemById(dialogID.slotTypeList)
+    if changed_input.id == profileTypeInput.id:
+        if profileTypeInput.selectedItem.index == 0:
+            genericInputGroup.isVisible = False
+            libGroupInputs.isVisible = False
+            # the first item is allways the simple block
+            # we show the generic group
+        elif profileTypeInput.selectedItem.index == 1:
+            #the second item is the generic type
+            genericInputGroup.isVisible = True
+            libGroupInputs.isVisible = False
+        else: # in all other cases we have library elements
+            genericInputGroup.isVisible = False
+            # update the list before show it
+            profilList = _profileLib.getProfilList(0)
+            typeList.listItems.clear()
+            for profil in profilList:
+                # add list item
+                typeList.listItems.add(profil.get("name"), False)
+            
+            libGroupInputs.isVisible = True
+
+
 
 
 

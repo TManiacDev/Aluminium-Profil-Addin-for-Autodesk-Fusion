@@ -1,0 +1,12 @@
+<?xml version="1.0"?>
+<profiles manufacture="Motedis">
+    <profile name="P40x40L_N8_I">
+        <dxf-file>P40x40L_N8_I.dxf</dxf-file>
+    </profile>
+    <profile name="P40x80L_N8_I">
+        <dxf-file>P40x80L_N8_I.dxf</dxf-file>
+    </profile>
+    <profile name="P40x120L_N8_I">
+        <dxf-file>P40x120L_N8_I.dxf</dxf-file>
+    </profile>
+</profiles>
