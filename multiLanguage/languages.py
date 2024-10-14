@@ -7,14 +7,6 @@ from . import german
 from  adsk.core import UserLanguages as fusionUserLanguages
 import xml.etree.ElementTree as xmlElementTree
 
-# the english file has the creation of the dictionary
-# don't copy this line to your language
-language = {
-    'english' : english,
-    'german'  : german,
-    'deutsch'  : german
-}
-
 fusionLanguages = {
    fusionUserLanguages.ChinesePRCLanguage       : None,
    fusionUserLanguages.ChineseTaiwanLanguage    : english,
@@ -28,29 +20,23 @@ class Language:
     """
     This class support unknwon translations on a very simple way
     """
-    def __init__(self, default: str = 'english', parentDir:str = None):
-        self.__showMissingTranslation = False
+    def __init__(self, default: str = 'english', parentDir:str = None, showMissingTranslation:bool = False):
+        self.__showMissingTranslation = showMissingTranslation
         self.__language = default.lower()
         self.__unknownCounter = 0
         self.__parentDir = parentDir
         dictName = default + ".xml"
         self.__xmlDictionaries = []
-        self.xmlPaths = []
         # load standard dictionary
-        # f'{os.path.dirname(os.path.abspath(__file__))}\
+        standardDictName = os.path.dirname(os.path.abspath(__file__)) + '\\' + dictName
+        self.__xmlDictionaries.append(self.__readDataFromXmlFile(standardDictName))
         # load specialiced dictionary
         if parentDir != None:
             pathName = parentDir  + dictName
-            self.xmlPaths.append(pathName)
             self.nextDict = self.__readDataFromXmlFile(pathName)
             self.__xmlDictionaries.append(self.nextDict)
-        else:
-            self.nextDict = "what is happen"
 
             
-        standardDictName = os.path.dirname(os.path.abspath(__file__)) + '\\' + dictName
-        self.xmlPaths.append(standardDictName)
-        self.__xmlDictionaries.append(self.__readDataFromXmlFile(standardDictName))
 
     @property
     def directory(self) -> bool:
@@ -86,14 +72,18 @@ class Language:
             dictReturn = 'no xml directory'
         else:            
             # we need a good way to query all dictionaries in reverse because the first dictionary is the standard dictionary
-            xmlRoot = self.__xmlDictionaries[0].getroot()
-            searchQuery = "./translation[@name='" + searchEntry + "']"
-            try:
-                dictReturn = xmlRoot.find(searchQuery).text.strip()
-            except:
-                if self.__showMissingTranslation:
-                    dictReturn = searchEntry + ' (unkown word on xml)'
-                else:
-                    dictReturn = searchEntry
+            
+            for xmlDict in self.__xmlDictionaries:
+                xmlRoot = xmlDict.getroot()
+                searchQuery = "./translation[@name='" + searchEntry + "']"
+                xmlFind = xmlRoot.find(searchQuery)
+                if ( xmlFind != None ):
+                    dictReturn = xmlFind.text.strip()
+                    return dictReturn
+            
+            if self.__showMissingTranslation:
+                dictReturn = searchEntry + ' (unkown word on xml)'
+            else:
+                dictReturn = searchEntry
         return dictReturn
     

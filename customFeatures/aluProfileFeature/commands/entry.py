@@ -25,7 +25,7 @@ _editedCustomFeature: adsk.fusion.CustomFeature = None
 _restoreTimelineObject: adsk.fusion.TimelineObject = None
 _isRolledForEdit = False
 
-_dict = translation.Language( 'english', ICON_FOLDER)
+_dict = translation.Language( 'english', ICON_FOLDER, True)
 
 def startCreateCommand(ui: adsk.core.UserInterface) -> adsk.core.CommandDefinition:
     """ create the entry for the create command """
