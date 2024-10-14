@@ -221,6 +221,7 @@ def createCommandView(args: adsk.core.CommandCreatedEventArgs, featureParams: ad
     directTypeList = inputs.addDropDownCommandInput(dialogID.directionTypeList, 
                                                     _dict.getTranslation('Direction'), 
                                                     adsk.core.DropDownStyles.LabeledIconDropDownStyle)
+    # The Order of this list items is important because the manageFeature doesn't know the translated names
     directTypeList.listItems.add(_dict.getTranslation('One Side'), True, addinConfig.FUSION_UI_RESOURCES_FOLDER + '/Modeling/LeftSide', -1)
     directTypeList.listItems.add(_dict.getTranslation('Both Side'), False, addinConfig.FUSION_UI_RESOURCES_FOLDER + '/Modeling/BothSide', -1)
     directTypeList.listItems.add(_dict.getTranslation('Symetric'), False, addinConfig.FUSION_UI_RESOURCES_FOLDER + '/Modeling/Symmetric', -1)
@@ -228,6 +229,7 @@ def createCommandView(args: adsk.core.CommandCreatedEventArgs, featureParams: ad
     
     # Create the list for dircetion type.
     featureTypeList = inputs.addDropDownCommandInput(dialogID.featureTypeList, _dict.getTranslation('Operation'), adsk.core.DropDownStyles.LabeledIconDropDownStyle)
+    # The Order of this list items is important because the manageFeature doesn't know the translated names
     featureTypeList.listItems.add(_dict.getTranslation('New Body'), True) #, addinConfig.FUSION_UI_RESOURCES_FOLDER + '/Modeling/LeftSide', -1)
     featureTypeList.listItems.add(_dict.getTranslation('New Component'), False) #, addinConfig.FUSION_UI_RESOURCES_FOLDER + '/NewComponent', -1)
     featureTypeList.listItems.add(_dict.getTranslation('New Feature'), False)#, addinConfig.FUSION_UI_RESOURCES_FOLDER + '/Modeling/Symmetric', -1)
@@ -256,13 +258,35 @@ def createCommand_execute(args: adsk.core.CommandEventArgs):
     featureTypeInput: adsk.core.DropDownCommandInput = inputs.itemById(dialogID.featureTypeList)
 
     # Do something interesting
-    futil.log(' execute create command: Create the custom feature')
+    futil.log(f' execute create command: Create the aluminium profile as {featureTypeInput.name} ')
 
     # call the preview event function to use the same result
     # this should move to a different function (calling from execute and preview)
 
-    myFeature.createFromInput(planeSelect, pointSelect, distanceInput, sizeInput, slotSizeInput, slotTypeInput, directInput, featureTypeInput)
+    # Get the active component.
+    app = adsk.core.Application.get()
+    des = adsk.fusion.Design.cast(app.activeProduct)
+    activeComponent = des.activeComponent
 
+    if featureTypeInput.selectedItem.name == _dict.getTranslation('New Feature'):
+        myFeature.createFromInput(planeSelect, pointSelect, distanceInput, sizeInput, slotSizeInput, slotTypeInput, directInput)
+    else:
+        planeEnt = planeSelect.selection(0).entity
+        pointEnt = pointSelect.selection(0).entity
+        if featureTypeInput.selectedItem.name == _dict.getTranslation('New Component'):
+            #
+            mat = adsk.core.Matrix3D.create() 
+            newOcc = activeComponent.occurrences.addNewComponent(mat)
+            newComponent = newOcc.component
+        else:
+            newComponent = activeComponent
+        myFeature.drawGeometry(newComponent, 
+                               planeEnt,
+                               pointEnt, 
+                               slotTypeInput.selectedItem.name, 
+                               sizeInput.value, 
+                               distanceInput.value,
+                               directInput.selectedItem.index)
 
 # This event handler is called when the command needs to compute a new preview in the graphics window.
 def command_preview(args: adsk.core.CommandEventArgs):
@@ -290,10 +314,15 @@ def command_preview(args: adsk.core.CommandEventArgs):
             elif input.id == dialogID.slotTypeList:
                 slotType = input.selectedItem.name
             elif input.id == dialogID.directionTypeList:
-                direction = input.selectedItem.name
+                direction = input.selectedItem.index
         
+        # Get the active component.
+        app = adsk.core.Application.get()
+        des = adsk.fusion.Design.cast(app.activeProduct)
+        activeComponent = des.activeComponent
+
         # Draw the preview geometry.
-        myFeature.drawGeometry(dialogID.preview_Name, planeEnt , pointEnt, slotType, size, length, direction)
+        myFeature.drawGeometry(activeComponent, planeEnt , pointEnt, slotType, size, length, direction, True)
         
         # Set this property indicating that the preview is a good
         # result and can be used as the final result when the command

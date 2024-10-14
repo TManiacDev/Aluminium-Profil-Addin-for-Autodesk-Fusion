@@ -37,88 +37,75 @@ def createFromInput( planeInput: adsk.core.SelectionCommandInput,
                      sizeInput: adsk.core.IntegerSpinnerCommandInput,
                      slotTypeInput: adsk.core.IntegerSpinnerCommandInput,
                      shapeInput: adsk.core.DropDownCommandInput,
-                     directInput: adsk.core.DropDownCommandInput,
-                     featureTypeInput: adsk.core.DropDownCommandInput ):
+                     directInput: adsk.core.DropDownCommandInput ):
     """
     Create an element of the feature
 
     The constructed element will become a feature element
     """
+    
+    # Get the active component.
+    app = adsk.core.Application.get()
+    des = adsk.fusion.Design.cast(app.activeProduct)
+    activeComponent = des.activeComponent
 
-    try:
-        futil.log(f'create alu profile feature from input(s) as {featureTypeInput.selectedItem.name}')
+    #try:
+    if(True):
+        futil.log(f'create alu profile feature from input(s) ')
         plane = planeInput.selection(0).entity
         skPoint: adsk.fusion.SketchPoint = pointInput.selection(0).entity
+        startFeature = activeComponent.features.baseFeatures.add()
+        mat = adsk.core.Matrix3D.create() 
+        newOcc = activeComponent.occurrences.addNewComponent(mat)
+        newComponent =  adsk.fusion.Component.cast(newOcc.component) 
 
-        if featureTypeInput.selectedItem.name == dialogID.newCustomFeature_Name:
-            sk, extr = drawGeometry('CustomFeature', 
-                                    plane, 
-                                    skPoint, 
-                                    shapeInput.selectedItem.name, 
-                                    sizeInput.value, 
-                                    distanceInput.value, 
-                                    directInput.selectedItem.name)
-            # Create the custom feature input.
-            _app = adsk.core.Application.get()
-            comp: adsk.fusion.Component = skPoint.parentSketch.parentComponent
-            des: adsk.fusion.Design = _app.activeProduct
-            defLengthUnits = des.unitsManager.defaultLengthUnits
-            custFeatureInput = comp.features.customFeatures.createInput(_myFeatureDef)
-            custFeatureInput.addDependency('point', skPoint)
-            custFeatureInput.addCustomParameter('length', 'Length', adsk.core.ValueInput.createByString(distanceInput.expression), des.unitsManager.defaultLengthUnits, True)
-            custFeatureInput.addCustomParameter('size', 'Size', adsk.core.ValueInput.createByReal(sizeInput.value), des.unitsManager.defaultLengthUnits, True)
-            custFeatureInput.setStartAndEndFeatures(sk, extr)
-            custFeature = comp.features.customFeatures.add(custFeatureInput)
-        elif featureTypeInput.selectedItem.name == dialogID.newComponent_Name:
-            sk, extr = drawGeometry(dialogID.newComponent_Name, 
-                                    plane, 
-                                    skPoint, 
-                                    shapeInput.selectedItem.name, 
-                                    sizeInput.value, 
-                                    distanceInput.value, 
-                                    directInput.selectedItem.name)
-        elif featureTypeInput.selectedItem.name == dialogID.newBody_Name:
-            sk, extr = drawGeometry(dialogID.newBody_Name, 
-                                    plane, skPoint, 
-                                    shapeInput.selectedItem.name, 
-                                    sizeInput.value, 
-                                    distanceInput.value, 
-                                    directInput.selectedItem.name)
+        sk, extr = drawGeometry(newComponent, 
+                                plane, 
+                                skPoint, 
+                                shapeInput.selectedItem.name, 
+                                sizeInput.value, 
+                                distanceInput.value, 
+                                directInput.selectedItem.index)
+        futil.log(f'We created the Geo')
+        defLengthUnits = des.unitsManager.defaultLengthUnits
+        custFeatureInput = activeComponent.features.customFeatures.createInput(_myFeatureDef)
+        custFeatureInput.addDependency('point', skPoint)
+        custFeatureInput.addCustomParameter('length', 'Length', adsk.core.ValueInput.createByString(distanceInput.expression), des.unitsManager.defaultLengthUnits, True)
+        custFeatureInput.addCustomParameter('size', 'Size', adsk.core.ValueInput.createByReal(sizeInput.value), des.unitsManager.defaultLengthUnits, True)
+        custFeatureInput.setStartAndEndFeatures(startFeature, extr)
+        custFeature = activeComponent.features.customFeatures.add(custFeatureInput)
 
 
-    except:
+    #except:
+    else:
         futil.log('Failed:\n{}'.format(traceback.format_exc()))
         
 # Draws the shapes based on the input argument.     
-def drawGeometry(geoType, planeEnt, pointEnt, slotShape, size_cm, length, direction) -> tuple[adsk.fusion.Sketch, adsk.fusion.ExtrudeFeature]:
+def drawGeometry( parent:adsk.fusion.Component, 
+                 planeEnt, 
+                 pointEnt, 
+                 slotShape, 
+                 size_cm, 
+                 length, 
+                 direction, 
+                 isPreview: bool = False) -> tuple[adsk.fusion.Sketch, adsk.fusion.ExtrudeFeature]:
     """
     Draw the element
     
     The function will call the steps to create the visual element. It will be used to preview and to create it
     """
-
-    # Get the design.
-    app = adsk.core.Application.get()
-    des = adsk.fusion.Design.cast(app.activeProduct)
     try:
         sk: adsk.fusion.Sketch = None
         body = None
-        if geoType == dialogID.preview_Name:
+        if isPreview:
             # the new body type uses a full sketch type because the circular pattern in sketch is more comfort then the circular pattern on body
-            sk, startPoint = drawSketch(des.activeComponent, planeEnt, pointEnt, config.attr_previewSketch, size_cm)
-            body = drawBody(des.activeComponent,sk, length, direction)
-        elif geoType == dialogID.newBody_Name:
+            # the preview creates a scetch without constrains to reduce calculation overhead
+            sk, startPoint = drawSketch(parent, planeEnt, pointEnt, config.attr_previewSketch, size_cm)
+            body = drawBody(parent,sk, length, direction)
+        else:
             # the new body type uses a full sketch type because the circular pattern in sketch is more comfort then the circular pattern on body
-            sk, startPoint = drawSketch(des.activeComponent, planeEnt, pointEnt, config.attr_fullSketch, size_cm)
-            body = drawBody(des.activeComponent, sk, length, direction)
-        elif geoType == dialogID.newComponent_Name:
-            # the new component type uses a quarter sketch type and some construction elements
-            # this should be much faster then the full sketch
-            mat = adsk.core.Matrix3D.create() 
-            newOcc = des.activeComponent.occurrences.addNewComponent(mat)
-            newComponent =  adsk.fusion.Component.cast(newOcc.component) 
-            sk, startPoint = drawSketch(newComponent, planeEnt, pointEnt, config.attr_fullSketch, size_cm)
-            body = drawBody(newComponent, sk, length, direction)
+            sk, startPoint = drawSketch(parent, planeEnt, pointEnt, config.attr_fullSketch, size_cm)
+            body = drawBody(parent, sk, length, direction)       
         return sk, body
     except:
         futil.log('Failed:\n{}'.format(traceback.format_exc()))
@@ -378,11 +365,12 @@ def drawBody (parent: adsk.fusion.Component, sketch: adsk.fusion.Sketch, length,
         extrudeInput = extrudes.createInput(prof, adsk.fusion.FeatureOperations.NewBodyFeatureOperation)
         # Create a distance extent definition       
         extent_distance = adsk.fusion.DistanceExtentDefinition.create(distanceValue) 
-        if direction == 'One Side':
+        futil.log(f'Create Exetrude with {str(direction)}')
+        if direction == 0 : # 'One Side'
             extrudeInput.setOneSideExtent(extent_distance, adsk.fusion.ExtentDirections.PositiveExtentDirection)
             # Create the extrusion
             extrude2 = extrudes.add(extrudeInput)
-        elif direction == 'Symetric':
+        elif direction == 2 : # 'Symetric'
             extrudeInput.setSymmetricExtent(distanceValue, True)
             # Create the extrusion
             extrude2 = extrudes.add(extrudeInput)
