@@ -5,11 +5,16 @@ Das CustomFeature benötigt zwei Command-Dialoge, einen für die Generierung des
 
 Das CustomFeature wird einige Daten als Parameter speichern. Gerade bei den Abmaßen sollte man dann schauen wie gut da auf eine Änderung reagiert werden kann. In der Regel ändert sich bei den Abmaßen auch die Form.
 
-Es wird neben der generischen Form auch eine dxf-Unterstützung geben.
+Es wird neben der generischen Form auch eine dxf-Unterstützung geben. Dann wird man einen Profile Manager benötigen um Profile zu laden.
 
 ## Aktueller Stand und so
 Der Create Dialog funktioniert und man kann ein einfaches Profil erzeugen. Noch ist das erzeugte Element kein CustomFeature
 
+'One Side' und 'Symetric' sind ok. Warum geht 'Both Side' nicht?
+
+## Commands
+Aktuell ist der Dialog darauf ausgelegt eine generische Skizze zu erzeugen.
+## manageFeature.py
 
 
 --------------------------
