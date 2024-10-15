@@ -19,6 +19,12 @@
         Today this will be the center point of the profile.
         Coming soon: there will be a anchor selection on the profile too.
     </translation>
+    <translation name="Select Manufacture">
+        Profile Manufacture
+    </translation>
+    <translation name="selectManufacture_Desc">
+        There will be a profile manager to add custom profiles.
+    </translation>
     <translation name="Select Profile Type">
         Profile Type
     </translation>

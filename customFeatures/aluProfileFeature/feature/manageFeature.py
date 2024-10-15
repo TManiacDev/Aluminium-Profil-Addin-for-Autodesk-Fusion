@@ -35,8 +35,7 @@ def createFromInput( planeInput: adsk.core.SelectionCommandInput,
                      pointInput: adsk.core.SelectionCommandInput,
                      distanceInput: adsk.core.DistanceValueCommandInput,
                      sizeInput: adsk.core.IntegerSpinnerCommandInput,
-                     slotTypeInput: adsk.core.IntegerSpinnerCommandInput,
-                     shapeInput: adsk.core.DropDownCommandInput,
+                     slotSizeInput: adsk.core.IntegerSpinnerCommandInput,
                      directInput: adsk.core.DropDownCommandInput ):
     """
     Create an element of the feature
@@ -59,13 +58,12 @@ def createFromInput( planeInput: adsk.core.SelectionCommandInput,
         newOcc = activeComponent.occurrences.addNewComponent(mat)
         newComponent =  adsk.fusion.Component.cast(newOcc.component) 
 
-        sk, extr = drawGeometry(newComponent, 
-                                plane, 
-                                skPoint, 
-                                shapeInput.selectedItem.name, 
-                                sizeInput.value, 
-                                distanceInput.value, 
-                                directInput.selectedItem.index)
+        sk, extr = drawGeometryGeneric( newComponent, 
+                                        plane, 
+                                        skPoint, 
+                                        sizeInput.value, 
+                                        distanceInput.value, 
+                                        directInput.selectedItem.index)
         futil.log(f'We created the Geo')
         defLengthUnits = des.unitsManager.defaultLengthUnits
         custFeatureInput = activeComponent.features.customFeatures.createInput(_myFeatureDef)
@@ -80,15 +78,29 @@ def createFromInput( planeInput: adsk.core.SelectionCommandInput,
     else:
         futil.log('Failed:\n{}'.format(traceback.format_exc()))
         
+def createFromDxf(parent:adsk.fusion.Component,
+                  planeEnt,
+                  dxfFile: str,
+                        length, 
+                        direction ):
+    """
+    we will create the profiles from file
+    """
+    futil.log(f'create alu profile feature from dxf file')
+
+    sk = dxfToSketch(parent, planeEnt, dxfFile)
+    body = drawBody(parent,sk, length, direction)
+
+
 # Draws the shapes based on the input argument.     
-def drawGeometry( parent:adsk.fusion.Component, 
-                 planeEnt, 
-                 pointEnt, 
-                 slotShape, 
-                 size_cm, 
-                 length, 
-                 direction, 
-                 isPreview: bool = False) -> tuple[adsk.fusion.Sketch, adsk.fusion.ExtrudeFeature]:
+def drawGeometryGeneric( parent:adsk.fusion.Component, 
+                        planeEnt, 
+                        pointEnt,  
+                        size_cm, 
+                        length, 
+                        direction, 
+                        isPreview: bool = False
+                        ) -> tuple[adsk.fusion.Sketch, adsk.fusion.ExtrudeFeature]:
     """
     Draw the element
     
@@ -338,6 +350,41 @@ def drawSketch(parent:adsk.fusion.Component, planeEnt, pointEnt, sketchType, siz
     except:
         futil.log('Failed:\n{}'.format(traceback.format_exc()))    
  
+def dxfToSketch(parent:adsk.fusion.Component, 
+                planeEnt,  
+                dxfFile) -> adsk.fusion.Sketch:
+    """
+    create a sketch witch the data from dxf file
+    """
+    # Create a new sketch plane.
+    
+    #sk = parent.sketches.add(planeEnt)    
+
+    app = adsk.core.Application.get()
+    ui  = app.userInterface
+    importManager = app.importManager
+    # Get dxf import options
+    ### Variante 1
+    dxfOptions = importManager.createDXF2DImportOptions(dxfFile, planeEnt)
+    dxfOptions.isViewFit = False
+    dxfOptions.isSingleSketchResult = True
+
+    # Import dxf file to root component
+    importManager.importToTarget(dxfOptions, parent)
+    
+    ### Variante 2
+    # #startTest Import Multilayer dxf
+    # dxfFileName = os.path.join(os.path.dirname(__file__), '../../../../APISampleImportMultiLayerDxf2D.dxf')
+    # #endTest
+    # dxfOptions = importManager.createDXF2DImportOptions(dxfFileName, rootComp.xZConstructionPlane)
+    # dxfOptions.isViewFit = False
+    # # Set the flag true to merge all the layers of DXF into single sketch.
+    # dxfOptions.isSingleSketchResult = True
+    
+    # # Import dxf file to root component
+    # importManager.importToTarget(dxfOptions, rootComp)
+                
+    return dxfOptions.results.item(0)
      
 def drawBody (parent: adsk.fusion.Component, sketch: adsk.fusion.Sketch, length, direction):
     """Draw an element
@@ -351,13 +398,16 @@ def drawBody (parent: adsk.fusion.Component, sketch: adsk.fusion.Sketch, length,
         des = adsk.fusion.Design.cast(app.activeProduct)
 
         # Find the inner profiles (only those with one loop).
-        profiles = adsk.core.ObjectCollection.create()
+        outerProfiles = adsk.core.ObjectCollection.create()
         for prof in sketch.profiles:
             if prof.profileLoops.count == 1:
-                profiles.add(prof)
+                profileLoop = prof.profileLoops.item(0)
+                if profileLoop.isOuter:
+                    outerProfiles.add(prof)
 
+        futil.log(f'There are {str(sketch.profiles.count)} : {str(outerProfiles.count)} profiles')
         # Create the extrude feature.            
-        input = parent.features.extrudeFeatures.createInput(profiles, adsk.fusion.FeatureOperations.NewBodyFeatureOperation)
+        input = parent.features.extrudeFeatures.createInput(outerProfiles, adsk.fusion.FeatureOperations.NewBodyFeatureOperation)
         extrudes = parent.features.extrudeFeatures
         distanceValue = adsk.core.ValueInput.createByReal(length)
         
@@ -365,7 +415,7 @@ def drawBody (parent: adsk.fusion.Component, sketch: adsk.fusion.Sketch, length,
         extrudeInput = extrudes.createInput(prof, adsk.fusion.FeatureOperations.NewBodyFeatureOperation)
         # Create a distance extent definition       
         extent_distance = adsk.fusion.DistanceExtentDefinition.create(distanceValue) 
-        futil.log(f'Create Exetrude with {str(direction)}')
+        futil.log(f'Create Extrude with {str(direction)}')
         if direction == 0 : # 'One Side'
             extrudeInput.setOneSideExtent(extent_distance, adsk.fusion.ExtentDirections.PositiveExtentDirection)
             # Create the extrusion

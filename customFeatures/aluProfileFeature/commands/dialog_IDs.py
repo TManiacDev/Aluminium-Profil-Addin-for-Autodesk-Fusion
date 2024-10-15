@@ -2,6 +2,7 @@
 # collection of used IDs to build up the dialog
 planeSelect = 'planeSelect_Id'
 pointSelect = 'pointSelect_Id'
+manufactureList = 'manufacture_Id'
 profileTypeList = 'profileTypeList_Id'
 
 ## 

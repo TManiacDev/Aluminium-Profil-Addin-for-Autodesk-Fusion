@@ -201,9 +201,9 @@ def createCommandView(args: adsk.core.CommandCreatedEventArgs, featureParams: ad
         pointSelect.tooltip =  _dict.getTranslation('selectPoint_Desc')
 
     # Create the list for types of shapes.
-    inputName =  _dict.getTranslation('Select Profile Type')
-    slotTypeList = inputs.addDropDownCommandInput(dialogID.profileTypeList, inputName, adsk.core.DropDownStyles.LabeledIconDropDownStyle)
-    slotTypeList.tooltip = _dict.getTranslation('selecProfileType_Desc')
+    inputName =  _dict.getTranslation('Select Manufacture')
+    slotTypeList = inputs.addDropDownCommandInput(dialogID.manufactureList, inputName, adsk.core.DropDownStyles.LabeledIconDropDownStyle)
+    slotTypeList.tooltip = _dict.getTranslation('selectManufacture_Desc')
     createProfileList(slotTypeList)
 
     genericGroupInputs = inputs.addGroupCommandInput(dialogID.genericTypeGroup, 'Generic Value Input')
@@ -222,7 +222,6 @@ def createCommandView(args: adsk.core.CommandCreatedEventArgs, featureParams: ad
         initValue = adsk.core.ValueInput.createByString('10.0 cm')
         distanceInput = inputs.addDistanceValueCommandInput(dialogID.distanceInput, inputName, initValue)
         distanceInput.isEnabled = False
-        distanceInput.isVisible = False
 
     # Create the list for dircetion type.
     directTypeList = inputs.addDropDownCommandInput(dialogID.directionTypeList, 
@@ -261,8 +260,8 @@ def createLibInput(groupInput: adsk.core.GroupCommandInput):
     to add selections depending from the library
     """
     # Create the list for dircetion type.
-    directTypeList = groupInput.children.addDropDownCommandInput(dialogID.slotTypeList, 
-                                                                 _dict.getTranslation('Slot Type'), 
+    directTypeList = groupInput.children.addDropDownCommandInput(dialogID.profileTypeList, 
+                                                                 _dict.getTranslation('Select Profile Type'), 
                                                                  adsk.core.DropDownStyles.TextListDropDownStyle)
 
 
@@ -278,46 +277,55 @@ def createCommand_execute(args: adsk.core.CommandEventArgs):
 
     # Get a reference to your command's inputs.
     inputs = args.command.commandInputs
-    
-    planeSelect: adsk.core.SelectionCommandInput = inputs.itemById(dialogID.planeSelect)
-    pointSelect: adsk.core.SelectionCommandInput = inputs.itemById(dialogID.pointSelect)
-    distanceInput: adsk.core.DistanceValueCommandInput = inputs.itemById(dialogID.distanceInput)
-    sizeInput: adsk.core.IntegerSpinnerCommandInput = inputs.itemById(dialogID.sizeSpinner)
-    slotSizeInput: adsk.core.IntegerSpinnerCommandInput = inputs.itemById(dialogID.slotSizeSpinner)
-    slotTypeInput: adsk.core.DropDownCommandInput = inputs.itemById(dialogID.profileTypeList)
-    directInput: adsk.core.DropDownCommandInput = inputs.itemById(dialogID.directionTypeList)
-    featureTypeInput: adsk.core.DropDownCommandInput = inputs.itemById(dialogID.featureTypeList)
-
-    # Do something interesting
-    futil.log(f' execute create command: Create the aluminium profile as {featureTypeInput.name} ')
-
-    # call the preview event function to use the same result
-    # this should move to a different function (calling from execute and preview)
-
     # Get the active component.
     app = adsk.core.Application.get()
     des = adsk.fusion.Design.cast(app.activeProduct)
     activeComponent = des.activeComponent
+    
+    planeSelect: adsk.core.SelectionCommandInput = inputs.itemById(dialogID.planeSelect)
+    pointSelect: adsk.core.SelectionCommandInput = inputs.itemById(dialogID.pointSelect)
+    distanceInput: adsk.core.DistanceValueCommandInput = inputs.itemById(dialogID.distanceInput)
+    directInput: adsk.core.DropDownCommandInput = inputs.itemById(dialogID.directionTypeList)
+    manufactureInput: adsk.core.DropDownCommandInput = inputs.itemById(dialogID.manufactureList)
+    sizeInput: adsk.core.IntegerSpinnerCommandInput = inputs.itemById(dialogID.sizeSpinner)
+    featureTypeInput: adsk.core.DropDownCommandInput = inputs.itemById(dialogID.featureTypeList)
 
-    if featureTypeInput.selectedItem.name == _dict.getTranslation('New Feature'):
-        myFeature.createFromInput(planeSelect, pointSelect, distanceInput, sizeInput, slotSizeInput, slotTypeInput, directInput)
-    else:
-        planeEnt = planeSelect.selection(0).entity
-        pointEnt = pointSelect.selection(0).entity
-        if featureTypeInput.selectedItem.name == _dict.getTranslation('New Component'):
-            #
-            mat = adsk.core.Matrix3D.create() 
-            newOcc = activeComponent.occurrences.addNewComponent(mat)
-            newComponent = newOcc.component
+    planeEnt = planeSelect.selection(0).entity
+    pointEnt = pointSelect.selection(0).entity
+
+    if (manufactureInput.selectedItem.index == 0) | (manufactureInput.selectedItem.index == 1):
+        # Do something interesting
+        futil.log(f' execute create command: Create the aluminium profile as {manufactureInput.selectedItem.name} | Index: {manufactureInput.selectedItem.index}')
+        slotSizeInput: adsk.core.IntegerSpinnerCommandInput = inputs.itemById(dialogID.slotSizeSpinner)
+
+        if featureTypeInput.selectedItem.name == _dict.getTranslation('New Feature'):
+            myFeature.createFromInput(planeSelect, pointSelect, distanceInput, sizeInput, slotSizeInput, directInput)
         else:
-            newComponent = activeComponent
-        myFeature.drawGeometry(newComponent, 
-                               planeEnt,
-                               pointEnt, 
-                               slotTypeInput.selectedItem.name, 
-                               sizeInput.value, 
-                               distanceInput.value,
-                               directInput.selectedItem.index)
+            if featureTypeInput.selectedItem.name == _dict.getTranslation('New Component'):
+                #
+                mat = adsk.core.Matrix3D.create() 
+                newOcc = activeComponent.occurrences.addNewComponent(mat)
+                newComponent = newOcc.component
+            else:
+                newComponent = activeComponent
+            myFeature.drawGeometryGeneric(newComponent, 
+                                            planeEnt,
+                                            pointEnt, 
+                                            sizeInput.value, 
+                                            distanceInput.value,
+                                            directInput.selectedItem.index)
+    else:
+        # Do something interesting
+        futil.log(f' execute create command: Create the aluminium profile as {manufactureInput.selectedItem.name} | Index: {manufactureInput.selectedItem.index} ')
+        
+        manufactureInput: adsk.core.DropDownCommandInput = inputs.itemById(dialogID.manufactureList)
+        profileInput: adsk.core.DropDownCommandInput = inputs.itemById(dialogID.profileTypeList)
+        manufactureName = manufactureInput.selectedItem.name
+        profileName = profileInput.selectedItem.name
+        pathName = _profileLib.getProfileFilePath(manufactureName, profileName)
+        futil.log(f'Preview {manufactureName} {profileName} path: {pathName}')
+        myFeature.createFromDxf(activeComponent,planeEnt,pathName, distanceInput.value,
+                                            directInput.selectedItem.index)
 
 # This event handler is called when the command needs to compute a new preview in the graphics window.
 def command_preview(args: adsk.core.CommandEventArgs):
@@ -330,6 +338,10 @@ def command_preview(args: adsk.core.CommandEventArgs):
 
         # Get the current value of inputs entered in the dialog.
         inputs = args.command.commandInputs
+        # Get the active component.
+        app = adsk.core.Application.get()
+        des = adsk.fusion.Design.cast(app.activeProduct)
+        activeComponent = des.activeComponent
 
         #  getInput
         
@@ -338,22 +350,31 @@ def command_preview(args: adsk.core.CommandEventArgs):
                 planeEnt = input.selection(0).entity
             elif input.id == dialogID.pointSelect:
                 pointEnt = input.selection(0).entity
-            elif input.id == dialogID.sizeSpinner:
-                size = input.value
-            elif input.id == dialogID.distanceInput:
-                length = input.value
-            elif input.id == dialogID.profileTypeList:
-                slotType = input.selectedItem.name
+            elif input.id == dialogID.manufactureList:
+                manufactureIndex = input.selectedItem.index
             elif input.id == dialogID.directionTypeList:
                 direction = input.selectedItem.index
-        
-        # Get the active component.
-        app = adsk.core.Application.get()
-        des = adsk.fusion.Design.cast(app.activeProduct)
-        activeComponent = des.activeComponent
+            elif input.id == dialogID.distanceInput:
+                length = input.value
+                
+        # do the generic preview
+        if (manufactureIndex == 0) | (manufactureIndex == 1):
+            for input in inputs: 
+                if input.id == dialogID.sizeSpinner:
+                    size = input.value
+            
 
-        # Draw the preview geometry.
-        myFeature.drawGeometry(activeComponent, planeEnt , pointEnt, slotType, size, length, direction, True)
+            # Draw the preview geometry.
+            myFeature.drawGeometryGeneric(activeComponent, planeEnt , pointEnt, size, length, direction, True)
+        else:
+            manufactureInput: adsk.core.DropDownCommandInput = inputs.itemById(dialogID.manufactureList)
+            profileInput: adsk.core.DropDownCommandInput = inputs.itemById(dialogID.profileTypeList)
+            manufactureName = manufactureInput.selectedItem.name
+            profileName = profileInput.selectedItem.name
+            pathName = _profileLib.getProfileFilePath(manufactureName, profileName)
+            futil.log(f'Preview {manufactureName} {profileName} path: {pathName}')
+            myFeature.createFromDxf(activeComponent,planeEnt,pathName, length, direction)
+
         
         # Set this property indicating that the preview is a good
         # result and can be used as the final result when the command
@@ -372,57 +393,60 @@ def command_input_changed(args: adsk.core.InputChangedEventArgs):
     inputs = args.inputs
 
     # General logging for debug.
-    futil.log(f'{featureConfig.FEATURE_NAME} Input Changed Event fired from a change to {changed_input.id}')
+    futil.log(f'{featureConfig.FEATURE_NAME} Input Changed Event fired from a change to {changed_input.id} {changed_input.objectType}')
     
     planeSelect: adsk.core.SelectionCommandInput = inputs.itemById(dialogID.planeSelect)
     pointSelect: adsk.core.SelectionCommandInput = inputs.itemById(dialogID.pointSelect)
     distanceInput: adsk.core.DistanceValueCommandInput = inputs.itemById(dialogID.distanceInput)
-    profileTypeInput: adsk.core.DropDownCommandInput = inputs.itemById(dialogID.profileTypeList)
+    manufactureInput: adsk.core.DropDownCommandInput = inputs.itemById(dialogID.manufactureList)
     
-    # Show and update the distance input when a plane is selected
-    if changed_input.id == planeSelect.id:
-        if planeSelect.selectionCount > 0:
-            selection = planeSelect.selection(0)
-            selection_point = selection.point
-            selected_entity = selection.entity
-            pointSelect.hasFocus = True
+    if changed_input.objectType == adsk.core.SelectionCommandInput.classType():
+        # Show and update the distance input when a plane is selected
+        if changed_input.id == planeSelect.id:
+            if planeSelect.selectionCount > 0:
+                selection = planeSelect.selection(0)
+                selection_point = selection.point
+                selected_entity = selection.entity
+                pointSelect.hasFocus = True
 
 
-    if changed_input.id == pointSelect.id:
-        if pointSelect.selectionCount > 0:
-            plane = planeSelect.selection(0).entity.geometry
-            selection_point = pointSelect.selection(0).entity.geometry
-            distanceInput.setManipulator(selection_point, plane.normal)
-            distanceInput.expression = "10mm"
-            distanceInput.isEnabled = True
-            distanceInput.isVisible = True
-        else:
-            distanceInput.isEnabled = False
-            distanceInput.isVisible = False
+        if changed_input.id == pointSelect.id:
+            if pointSelect.selectionCount > 0:
+                plane = planeSelect.selection(0).entity.geometry
+                selection_point = pointSelect.selection(0).entity.geometry
+                distanceInput.setManipulator(selection_point, plane.normal)
+                distanceInput.expression = "10mm"
+                distanceInput.isEnabled = True
+            else:
+                distanceInput.isEnabled = False
 
     genericInputGroup: adsk.core.GroupCommandInput = inputs.itemById(dialogID.genericTypeGroup)
     libGroupInputs: adsk.core.GroupCommandInput = inputs.itemById(dialogID.libTypeGroup)
-    typeList: adsk.core.DropDownCommandInput = inputs.itemById(dialogID.slotTypeList)
-    if changed_input.id == profileTypeInput.id:
-        if profileTypeInput.selectedItem.index == 0:
-            genericInputGroup.isVisible = False
-            libGroupInputs.isVisible = False
-            # the first item is allways the simple block
-            # we show the generic group
-        elif profileTypeInput.selectedItem.index == 1:
-            #the second item is the generic type
-            genericInputGroup.isVisible = True
-            libGroupInputs.isVisible = False
-        else: # in all other cases we have library elements
-            genericInputGroup.isVisible = False
-            # update the list before show it
-            profilList = _profileLib.getProfilList(0)
-            typeList.listItems.clear()
-            for profil in profilList:
-                # add list item
-                typeList.listItems.add(profil.get("name"), False)
-            
-            libGroupInputs.isVisible = True
+    typeList: adsk.core.DropDownCommandInput = inputs.itemById(dialogID.profileTypeList)
+    if changed_input.objectType == adsk.core.DropDownCommandInput.classType():
+        if changed_input.id == dialogID.manufactureList:
+            if manufactureInput.selectedItem.index == 0:
+                genericInputGroup.isVisible = False
+                libGroupInputs.isVisible = False
+                # the first item is allways the simple block
+                # we show the generic group
+            elif manufactureInput.selectedItem.index == 1:
+                #the second item is the generic type
+                genericInputGroup.isVisible = True
+                libGroupInputs.isVisible = False
+            else: # in all other cases we have library elements
+                genericInputGroup.isVisible = False
+                # update the list before show it
+                profilList = _profileLib.getProfilList(0)
+                typeList.listItems.clear()
+                for profil in profilList:
+                    # add list item
+                    if profil == profilList[0]:
+                        typeList.listItems.add(profil.get("name"), True)
+                    else:
+                        typeList.listItems.add(profil.get("name"), False)
+                
+                libGroupInputs.isVisible = True
 
 
 
