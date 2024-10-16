@@ -1,0 +1,75 @@
+<?xml version="1.0"?>
+<dictionary name="AluProfileDictionary" language="german" version="1.0">
+    <translation name="Create Aluminium Profile">
+        Erzeuge Alu Profile
+    </translation>
+    <translation name="createProfileCommand_Desc">
+        Dialog to create a Alu Profile on a path
+    </translation>
+    <translation name="Select Plane">
+        Startebene auswählen
+    </translation>
+    <translation name="selectPlane_Desc">
+        Wähle die Startebene von der aus das Profil erzeugt werden soll
+    </translation>
+    <translation name="Select Point">
+        Ankerpunkt auswählen
+    </translation>
+    <translation name="selectPoint_Desc">
+        Wählt den Ankerpunkt für das Profil aus.
+        Dieser Ankerpunkt stellt den Nullpunkt der Skizze dar. Bei dem generischen Profil ist dies der Mittelpunkt.
+        
+        Hier wird es eventuell später noch eine Möglichkeit der Auswahl der Anker im Profil geben.
+    </translation>
+    <translation name="Select Manufacture">
+        Profilhersteller
+    </translation>
+    <translation name="selectManufacture_Desc">
+        Die Profilhersteller werden in separaten Bibliotheken geführt.
+        Es braucht später einen Bibliotheksmanager.
+    </translation>
+    <translation name="Profile Copyright1">
+        Die Herstellerbibliothek enthält ein paar Beispiele der Hersteller Motedis (www.motedis.com) und Minitec (www.minitec.de) um zu zeigen wie der SVG Support funktioniert. 
+    </translation>
+    <translation name="Profile Copyright2">
+        Die SVGs welche enthalten sind, habe ich aus den öffentlich zugänglichen Step-Dateien erzeugt. 
+    </translation>
+    <translation name="Profile Copyright3">
+        Das Copyright der Formen obliegt den jeweiligen Herstellern.
+    </translation>
+    <translation name="Select Profile Type">
+        Profiltyp
+    </translation>
+    <translation name="selecProfileType_Desc">
+        There will be a profile manager to add custom profiles.
+    </translation>
+    <translation name="Slot Size">
+        Slot Breite
+    </translation>
+    <translation name="One Side">
+        Eine Richtung
+    </translation>
+    <translation name="Two Sides">
+        Beide Richtung (Die Funktion wird noch nicht unterstützt)
+    </translation>
+    <translation name="Symetric">
+        Symetrisch
+    </translation>
+    <translation name="operation_Desc">
+        Neuer Körper und Neue Komponente funktionieren wie auch bei den sonstigen Operationen in Fusion. 
+        Die erzeugten Objekte sind ganz normale Solids. Man hat unmittelbaren Zugriff auf die Skizze und die Extrusion.
+
+        Neues Feature erzeugt das Profil als Profil-Feature (customFeature). 
+        Damit erhält man die Möglichkeit das Aluminiumprofil als Einheit zu editieren. Man kann einfach ein Profil gegen ein anderes austauschen.
+        Auch spätere gerenerierte Verbinder lassen sich nur über dieses Feature handhaben.
+    </translation>
+    <translation name="New Body">
+        Neuer Körper
+    </translation>
+    <translation name="New Component">
+        Neue Komponente
+    </translation>
+    <translation name="New Feature">
+        Neues Alu-Profil Feature
+    </translation>
+</dictionary>

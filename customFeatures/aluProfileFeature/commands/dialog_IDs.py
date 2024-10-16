@@ -3,6 +3,7 @@
 planeSelect = 'planeSelect_Id'
 pointSelect = 'pointSelect_Id'
 manufactureList = 'manufacture_Id'
+copyrightText = 'copyrightText_Id'
 profileTypeList = 'profileTypeList_Id'
 
 ## 

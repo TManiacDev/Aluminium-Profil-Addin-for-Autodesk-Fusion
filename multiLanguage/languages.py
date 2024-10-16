@@ -2,30 +2,37 @@
 This is a simple support for translation
 """
 import os
-from . import english
-from . import german
 from  adsk.core import UserLanguages as fusionUserLanguages
 import xml.etree.ElementTree as xmlElementTree
 
+from ..lib import fusion360utils as futil 
+
 fusionLanguages = {
    fusionUserLanguages.ChinesePRCLanguage       : None,
-   fusionUserLanguages.ChineseTaiwanLanguage    : english,
-   fusionUserLanguages.CzechLanguage            : english,
-   fusionUserLanguages.EnglishLanguage          : english,
+   fusionUserLanguages.ChineseTaiwanLanguage    : 'english',
+   fusionUserLanguages.CzechLanguage            : 'english',
+   fusionUserLanguages.EnglishLanguage          : 'english',
    fusionUserLanguages.FrenchLanguage           : None, 
-   fusionUserLanguages.GermanLanguage           : german, 
+   fusionUserLanguages.GermanLanguage           : 'german', 
 }
 
 class Language:
     """
     This class support unknwon translations on a very simple way
     """
-    def __init__(self, default: str = 'english', parentDir:str = None, showMissingTranslation:bool = False):
+    def __init__(self, 
+                 default: fusionUserLanguages  = fusionUserLanguages.EnglishLanguage, 
+                 parentDir:str = None, 
+                 showMissingTranslation:bool = False):
+        """
+
+        """
         self.__showMissingTranslation = showMissingTranslation
-        self.__language = default.lower()
-        self.__unknownCounter = 0
+        self.__language = fusionLanguages[default]
+        futil.log(f'Languages: {str(fusionLanguages)}') 
+        futil.log(f'Default: {str(default)}') 
         self.__parentDir = parentDir
-        dictName = default + ".xml"
+        dictName = self.__language + ".xml"
         self.__xmlDictionaries = []
         # load standard dictionary
         standardDictName = os.path.dirname(os.path.abspath(__file__)) + '\\' + dictName

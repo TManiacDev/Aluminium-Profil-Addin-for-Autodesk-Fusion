@@ -1,0 +1,12 @@
+<?xml version="1.0"?>
+<dictionary name="StandardDictionary" language="german" version="1.0">
+    <translation name="standardCommand_Name">Command Name (Standard)</translation>
+    <translation name="standardCommand_Desc">
+        Der Text für ein Tooltip
+        Dieser Text darf auch Zeilenumbrüche enthalten.        
+    </translation>
+    <translation name="Direction">deutsch: Richtung</translation>
+    <translation name="Distance">deutsch: Abstand</translation>
+    <translation name="Operation">deutsch: Operation</translation>
+    <translation name="Size">deutsch: Größe</translation>
+</dictionary>

@@ -1,0 +1,9 @@
+<?xml version="1.0"?>
+<profiles manufacture="Minitec">
+    <profile name="45x45">
+        <dxf-file>45x45.dxf</dxf-file>
+    </profile>
+    <profile name="45x90">
+        <dxf-file>45x90.dxf</dxf-file>
+    </profile>
+</profiles>

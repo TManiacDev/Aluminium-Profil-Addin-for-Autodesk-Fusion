@@ -14,7 +14,7 @@ from ....profileLibrary import entry as profileLibrary
 import xml.etree.ElementTree as xmlElementTree
 
 # Resource location for command icons, here we assume a sub folder in this directory named "resources". 
-ICON_FOLDER = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'resources', '') 
+RES_FOLDER = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'resources', '') 
 PROFILE_FOLDER = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'resources/profiles', '') 
 
 # Local list of event handlers used to maintain a reference so 
@@ -26,7 +26,9 @@ _editedCustomFeature: adsk.fusion.CustomFeature = None
 _restoreTimelineObject: adsk.fusion.TimelineObject = None
 _isRolledForEdit = False
 
-_dict = translation.Language( 'english', ICON_FOLDER)
+_dict = None
+#_dict = translation.Language( adsk.core.UserLanguages.EnglishLanguage, RES_FOLDER)
+#_dict = translation.Language( adsk.core.UserLanguages.GermanLanguage, RES_FOLDER)
 _profileLib = profileLibrary.AluProfileLibrary()
 
 def startCreateCommand(ui: adsk.core.UserInterface) -> adsk.core.CommandDefinition:
@@ -37,11 +39,16 @@ def startCreateCommand(ui: adsk.core.UserInterface) -> adsk.core.CommandDefiniti
     existingDef = ui.commandDefinitions.itemById(featureConfig.CREATE_CMD_ID)
     if existingDef:
         existingDef.deleteMe()
+    
+    app = adsk.core.Application.get()
+    appLanguage = app.preferences.generalPreferences.userLanguage
+    global _dict 
+    _dict = translation.Language( adsk.core.UserLanguages.EnglishLanguage, RES_FOLDER)
 
     createCmdDef = ui.commandDefinitions.addButtonDefinition(featureConfig.CREATE_CMD_ID, 
                                                              _dict.getTranslation('Create Aluminium Profile'), 
                                                              _dict.getTranslation('createProfileCommand_Desc'), 
-                                                             ICON_FOLDER)
+                                                             RES_FOLDER)
 
     #futil.log(f'Dictionary: {_dict.xmlDictionary}') 
 
@@ -229,7 +236,7 @@ def createCommandView(args: adsk.core.CommandCreatedEventArgs, featureParams: ad
                                                     adsk.core.DropDownStyles.LabeledIconDropDownStyle)
     # The Order of this list items is important because the manageFeature doesn't know the translated names
     directTypeList.listItems.add(_dict.getTranslation('One Side'), True, addinConfig.FUSION_UI_RESOURCES_FOLDER + '/Modeling/LeftSide', -1)
-    directTypeList.listItems.add(_dict.getTranslation('Both Side'), False, addinConfig.FUSION_UI_RESOURCES_FOLDER + '/Modeling/BothSide', -1)
+    directTypeList.listItems.add(_dict.getTranslation('Two Sides'), False, addinConfig.FUSION_UI_RESOURCES_FOLDER + '/Modeling/BothSide', -1)
     directTypeList.listItems.add(_dict.getTranslation('Symetric'), False, addinConfig.FUSION_UI_RESOURCES_FOLDER + '/Modeling/Symmetric', -1)
 
     
@@ -252,13 +259,21 @@ def createProfileList(list: adsk.core.DropDownCommandInput):
         #os.path.join(os.path.dirname(os.path.abspath(__file__)), 'resources', '') 
         list.listItems.add(text, True, FolderName)
     # we add this at last so it will shown on creation
-    list.listItems.add('None (simple block)', True, ICON_FOLDER + '/None', 0)
-    list.listItems.add('Generic', True, ICON_FOLDER + '/profiles' , 1)
+    list.listItems.add('None (simple block)', True, RES_FOLDER + '/None', 0)
+    list.listItems.add('Generic', True, RES_FOLDER + '/profiles' , 1)
 
 def createLibInput(groupInput: adsk.core.GroupCommandInput):
     """
     to add selections depending from the library
     """
+    # give some informations for direction of axis 
+    copyrightText = _dict.getTranslation('Profile Copyright1') + "<br>"
+    copyrightText += _dict.getTranslation('Profile Copyright2') + "<br>"
+    copyrightText += "<br><b>" + _dict.getTranslation('Profile Copyright3') + "</b>"
+    text_box_input = groupInput.children.addTextBoxCommandInput(dialogID.copyrightText, 'Copyright Info', 
+                                                   copyrightText, 
+                                                   6, 
+                                                   True) 
     # Create the list for dircetion type.
     directTypeList = groupInput.children.addDropDownCommandInput(dialogID.profileTypeList, 
                                                                  _dict.getTranslation('Select Profile Type'), 
@@ -299,7 +314,12 @@ def createCommand_execute(args: adsk.core.CommandEventArgs):
         slotSizeInput: adsk.core.IntegerSpinnerCommandInput = inputs.itemById(dialogID.slotSizeSpinner)
 
         if featureTypeInput.selectedItem.name == _dict.getTranslation('New Feature'):
-            myFeature.createFromInput(planeSelect, pointSelect, distanceInput, sizeInput, slotSizeInput, directInput)
+            myFeature.createFromInput(planeSelect, 
+                                      pointSelect, 
+                                      distanceInput, 
+                                      sizeInput, 
+                                      slotSizeInput, 
+                                      directInput)
         else:
             if featureTypeInput.selectedItem.name == _dict.getTranslation('New Component'):
                 #
@@ -308,24 +328,39 @@ def createCommand_execute(args: adsk.core.CommandEventArgs):
                 newComponent = newOcc.component
             else:
                 newComponent = activeComponent
+
             myFeature.drawGeometryGeneric(newComponent, 
                                             planeEnt,
                                             pointEnt, 
                                             sizeInput.value, 
+                                            slotSizeInput.value,
                                             distanceInput.value,
                                             directInput.selectedItem.index)
     else:
         # Do something interesting
         futil.log(f' execute create command: Create the aluminium profile as {manufactureInput.selectedItem.name} | Index: {manufactureInput.selectedItem.index} ')
-        
+
         manufactureInput: adsk.core.DropDownCommandInput = inputs.itemById(dialogID.manufactureList)
         profileInput: adsk.core.DropDownCommandInput = inputs.itemById(dialogID.profileTypeList)
-        manufactureName = manufactureInput.selectedItem.name
-        profileName = profileInput.selectedItem.name
-        pathName = _profileLib.getProfileFilePath(manufactureName, profileName)
-        futil.log(f'Preview {manufactureName} {profileName} path: {pathName}')
-        myFeature.createFromDxf(activeComponent,planeEnt,pathName, distanceInput.value,
-                                            directInput.selectedItem.index)
+
+        if featureTypeInput.selectedItem.name == _dict.getTranslation('New Feature'):
+            #myFeature.createFromInput(planeSelect, pointSelect, distanceInput, sizeInput, slotSizeInput, directInput)
+            futil.log(f'just to do something')
+        else:
+            if featureTypeInput.selectedItem.name == _dict.getTranslation('New Component'):
+                #
+                mat = adsk.core.Matrix3D.create() 
+                newOcc = activeComponent.occurrences.addNewComponent(mat)
+                newComponent = newOcc.component
+            else:
+                newComponent = activeComponent
+
+            manufactureName = manufactureInput.selectedItem.name
+            profileName = profileInput.selectedItem.name
+            pathName = _profileLib.getProfileFilePath(manufactureName, profileName)
+            futil.log(f'Execute {manufactureName} {profileName} path: {pathName}')
+            myFeature.createFromDxf(newComponent,planeEnt,pathName, distanceInput.value,
+                                                    directInput.selectedItem.index)
 
 # This event handler is called when the command needs to compute a new preview in the graphics window.
 def command_preview(args: adsk.core.CommandEventArgs):
@@ -362,10 +397,19 @@ def command_preview(args: adsk.core.CommandEventArgs):
             for input in inputs: 
                 if input.id == dialogID.sizeSpinner:
                     size = input.value
+                elif input.id == dialogID.slotSizeSpinner:
+                    slotSize = input.value
             
 
             # Draw the preview geometry.
-            myFeature.drawGeometryGeneric(activeComponent, planeEnt , pointEnt, size, length, direction, True)
+            myFeature.drawGeometryGeneric(activeComponent, 
+                                          planeEnt , 
+                                          pointEnt, 
+                                          size, 
+                                          slotSize, 
+                                          length, 
+                                          direction, 
+                                          True)
         else:
             manufactureInput: adsk.core.DropDownCommandInput = inputs.itemById(dialogID.manufactureList)
             profileInput: adsk.core.DropDownCommandInput = inputs.itemById(dialogID.profileTypeList)
@@ -437,7 +481,7 @@ def command_input_changed(args: adsk.core.InputChangedEventArgs):
             else: # in all other cases we have library elements
                 genericInputGroup.isVisible = False
                 # update the list before show it
-                profilList = _profileLib.getProfilList(0)
+                profilList = _profileLib.getProfilListByManufacture(manufactureInput.selectedItem.name)
                 typeList.listItems.clear()
                 for profil in profilList:
                     # add list item

@@ -12,6 +12,8 @@ class AluProfileLibrary:
         # load standard dictionary
         standardDictName = os.path.dirname(os.path.abspath(__file__)) + '\\' + "Motedis.xml"
         self.__libraries.append(self.__readDataFromXmlFile(standardDictName))
+        standardDictName = os.path.dirname(os.path.abspath(__file__)) + '\\' + "Minitec.xml"
+        self.__libraries.append(self.__readDataFromXmlFile(standardDictName))
 
     def getLibNameList(self):
         """
@@ -42,6 +44,19 @@ class AluProfileLibrary:
         libRoot = lib.getroot()
         for child in libRoot:
             profilList.append(child.attrib)
+        return profilList
+    
+    def getProfilListByManufacture(self, manufacture: str) -> list[xmlElementTree.Element]:
+        """
+        get a list of profiles from a single manufacture library
+        """
+        profilList = []
+        for lib in self.__libraries:
+            libRoot = lib.getroot()
+            manuTag = libRoot.get("manufacture")
+            if manuTag == manufacture:
+                for child in libRoot:
+                    profilList.append(child.attrib)
         return profilList
     
     def getFolder(self) -> str:

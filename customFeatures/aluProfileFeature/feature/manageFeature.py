@@ -62,6 +62,7 @@ def createFromInput( planeInput: adsk.core.SelectionCommandInput,
                                         plane, 
                                         skPoint, 
                                         sizeInput.value, 
+                                        slotSizeInput.value, 
                                         distanceInput.value, 
                                         directInput.selectedItem.index)
         futil.log(f'We created the Geo')
@@ -97,6 +98,7 @@ def drawGeometryGeneric( parent:adsk.fusion.Component,
                         planeEnt, 
                         pointEnt,  
                         size_cm, 
+                        slotSize_cm,
                         length, 
                         direction, 
                         isPreview: bool = False
@@ -112,22 +114,28 @@ def drawGeometryGeneric( parent:adsk.fusion.Component,
         if isPreview:
             # the new body type uses a full sketch type because the circular pattern in sketch is more comfort then the circular pattern on body
             # the preview creates a scetch without constrains to reduce calculation overhead
-            sk, startPoint = drawSketch(parent, planeEnt, pointEnt, config.attr_previewSketch, size_cm)
+            sk, startPoint = drawGenericSketch(parent, planeEnt, pointEnt, config.attr_previewSketch, size_cm)
             body = drawBody(parent,sk, length, direction)
         else:
             # the new body type uses a full sketch type because the circular pattern in sketch is more comfort then the circular pattern on body
-            sk, startPoint = drawSketch(parent, planeEnt, pointEnt, config.attr_fullSketch, size_cm)
+            sk, startPoint = drawGenericSketch(parent, planeEnt, pointEnt, config.attr_fullSketch, size_cm)
             body = drawBody(parent, sk, length, direction)       
         return sk, body
     except:
         futil.log('Failed:\n{}'.format(traceback.format_exc()))
 
 # Draw the sketch
-def drawSketch(parent:adsk.fusion.Component, planeEnt, pointEnt, sketchType, size_cm) -> tuple[adsk.fusion.Sketch, adsk.fusion.SketchPoint]:
+def drawGenericSketch(parent:adsk.fusion.Component, 
+                      planeEnt:adsk.core.Base, 
+                      pointEnt:adsk.core.Base, 
+                      sketchType, 
+                      size_cm,
+                      slotSize_cm
+                    ) -> tuple[adsk.fusion.Sketch, adsk.fusion.SketchPoint]:
     """
     Draw an element sketch
     
-    We draw an element to visualize it
+    We draw the generic sketch
     """
 
     try:
@@ -182,7 +190,7 @@ def drawSketch(parent:adsk.fusion.Component, planeEnt, pointEnt, sketchType, siz
             sketchConstraints.addMidPoint(skPnt, verticalCenterLine)
             verticalCenterLine.isConstruction = True 
 
-            # we uses the points inside the config sketch class
+            # we uses the points inside the config sketch class to build the slot
             # later we will do a selection depending on the profil type
             sketchPoints = config.quarterSketchPoints
             sketchSize = sketchPoints.size()
@@ -371,20 +379,16 @@ def dxfToSketch(parent:adsk.fusion.Component,
 
     # Import dxf file to root component
     importManager.importToTarget(dxfOptions, parent)
-    
-    ### Variante 2
-    # #startTest Import Multilayer dxf
-    # dxfFileName = os.path.join(os.path.dirname(__file__), '../../../../APISampleImportMultiLayerDxf2D.dxf')
-    # #endTest
-    # dxfOptions = importManager.createDXF2DImportOptions(dxfFileName, rootComp.xZConstructionPlane)
-    # dxfOptions.isViewFit = False
-    # # Set the flag true to merge all the layers of DXF into single sketch.
-    # dxfOptions.isSingleSketchResult = True
-    
-    # # Import dxf file to root component
-    # importManager.importToTarget(dxfOptions, rootComp)
-                
-    return dxfOptions.results.item(0)
+
+    sketchResult: adsk.fusion.Sketch = dxfOptions.results.item(0) 
+    # for prof in sketchResult.profiles:
+    #     if prof.profileLoops.count == 1:
+    #         profileLoop = prof.profileLoops.item(0)
+    #         for curve in profileLoop.profileCurves:
+    #             # we should fix the sketch curves
+
+
+    return sketchResult
      
 def drawBody (parent: adsk.fusion.Component, sketch: adsk.fusion.Sketch, length, direction):
     """Draw an element
@@ -396,46 +400,44 @@ def drawBody (parent: adsk.fusion.Component, sketch: adsk.fusion.Sketch, length,
         # Get the design.
         app = adsk.core.Application.get()
         des = adsk.fusion.Design.cast(app.activeProduct)
-
-        # Find the inner profiles (only those with one loop).
-        outerProfiles = adsk.core.ObjectCollection.create()
-        for prof in sketch.profiles:
-            if prof.profileLoops.count == 1:
-                profileLoop = prof.profileLoops.item(0)
-                if profileLoop.isOuter:
-                    outerProfiles.add(prof)
-
-        futil.log(f'There are {str(sketch.profiles.count)} : {str(outerProfiles.count)} profiles')
-        # Create the extrude feature.            
-        input = parent.features.extrudeFeatures.createInput(outerProfiles, adsk.fusion.FeatureOperations.NewBodyFeatureOperation)
         extrudes = parent.features.extrudeFeatures
         distanceValue = adsk.core.ValueInput.createByReal(length)
-        
-        # Extrude Sample 2: Create an extrusion that goes from the profile plane with one side distance extent
-        extrudeInput = extrudes.createInput(prof, adsk.fusion.FeatureOperations.NewBodyFeatureOperation)
-        # Create a distance extent definition       
-        extent_distance = adsk.fusion.DistanceExtentDefinition.create(distanceValue) 
-        futil.log(f'Create Extrude with {str(direction)}')
-        if direction == 0 : # 'One Side'
-            extrudeInput.setOneSideExtent(extent_distance, adsk.fusion.ExtentDirections.PositiveExtentDirection)
-            # Create the extrusion
-            extrude2 = extrudes.add(extrudeInput)
-        elif direction == 2 : # 'Symetric'
-            extrudeInput.setSymmetricExtent(distanceValue, True)
-            # Create the extrusion
-            extrude2 = extrudes.add(extrudeInput)
 
-        """
-        # Create input entities for circular pattern
-        inputEntites = adsk.core.ObjectCollection.create()
-        inputEntites.add(extrude2.bodies.item(0))
-        axis = extrude2.faces.item(0).edges.item(0)
-        circularFeats = des.rootComponent.features.circularPatternFeatures
-        circularInput = circularFeats.createInput(inputEntites, axis)
-        circularInput.quantity = adsk.core.ValueInput.createByReal(3)
-        # Create the circular pattern
-        circularFeat = circularFeats.add(circularInput)
-        """
+        # Find the inner profiles (only those with one loop).
+        profCounter = 0
+        futil.log(f'drawBody from sketch {str(sketch.profiles.count)} with profiles ')
+
+        # use all profiles or only one / the first ???
+        # for prof in sketch.profiles:
+        prof = sketch.profiles.item(0)
+        if prof != None:
+            profCounter += 1
+            profileName = "Profile " + sketch.name # + str(profCounter)
+            # if prof.profileLoops.count == 1:
+            profileLoop = prof.profileLoops.item(0)
+            singleProfiles = adsk.core.ObjectCollection.create()
+            if profileLoop.isOuter:
+                singleProfiles.add(prof)
+               
+            # Create the extrude feature.
+            if profCounter != 0 :
+                extrudeInput = extrudes.createInput(prof, adsk.fusion.FeatureOperations.NewBodyFeatureOperation)
+                futil.log(f'Create Extrude (new body operation) with {profileName} with {str(prof.profileLoops.count)} loops')
+            else:
+                extrudeInput = extrudes.createInput(prof, adsk.fusion.FeatureOperations.CutFeatureOperation)
+                futil.log(f'Create Extrude (Cut Operation) with {profileName} with {str(prof.profileLoops.count)} loops')
+            # Create a distance extent definition       
+            extent_distance = adsk.fusion.DistanceExtentDefinition.create(distanceValue) 
+            if direction == 0 : # 'One Side'
+                extrudeInput.setOneSideExtent(extent_distance, adsk.fusion.ExtentDirections.PositiveExtentDirection)
+                # Create the extrusion
+                extrude2 = extrudes.add(extrudeInput)
+            elif direction == 2 : # 'Symetric'
+                extrudeInput.setSymmetricExtent(distanceValue, True)
+                # Create the extrusion
+                extrude2 = extrudes.add(extrudeInput)
+
+                extrude2.name = profileName
 
         return extrude2
     except:

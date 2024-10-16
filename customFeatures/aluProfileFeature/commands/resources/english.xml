@@ -25,11 +25,23 @@
     <translation name="selectManufacture_Desc">
         There will be a profile manager to add custom profiles.
     </translation>
+    <translation name="Profile Copyright1">
+        The manufacture library holds some examples from Motedis (www.motedis.com) and Minitec (www.minitec.de) to show the svg support.
+    </translation>
+    <translation name="Profile Copyright2">
+        I have created the svg files based on the public step files from the manufacture.
+    </translation>
+    <translation name="Profile Copyright3">
+        The manufacture holds the copyright of the profile form.
+    </translation>
     <translation name="Select Profile Type">
         Profile Type
     </translation>
     <translation name="selecProfileType_Desc">
         There will be a profile manager to add custom profiles.
+    </translation>
+    <translation name="Two Sides">
+        Both Sides (This functions is coming soon)
     </translation>
     <translation name="operation_Desc">
         New Body and New Component are like the default operations on Fusion.
