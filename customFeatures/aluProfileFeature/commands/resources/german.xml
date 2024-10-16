@@ -6,6 +6,9 @@
     <translation name="createProfileCommand_Desc">
         Dialog to create a Alu Profile on a path
     </translation>
+    <translation name="Edit Aluminium Profile">
+        Edit Aluminium Profile Feature
+    </translation>
     <translation name="Select Plane">
         Startebene auswählen
     </translation>

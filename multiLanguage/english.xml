@@ -2,7 +2,7 @@
 <dictionary name="StandardDictionary" language="english" version="1.0">
     <translation name="standardCommand_Name">Command Name (Standard)</translation>
     <translation name="standardCommand_Desc">Description shown on the tool tip</translation>
-    <translation name="Direction">Translate Direction</translation>
-    <translation name="Operation">Translate Operation</translation>
-    <translation name="Size">Translate Size</translation>
+    <translation name="Direction">Direction (Lib)</translation>
+    <translation name="Operation">Operation (Lib)</translation>
+    <translation name="Size"> Size (Lib)</translation>
 </dictionary>

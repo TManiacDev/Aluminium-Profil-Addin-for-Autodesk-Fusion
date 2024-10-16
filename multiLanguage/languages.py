@@ -5,7 +5,6 @@ import os
 from  adsk.core import UserLanguages as fusionUserLanguages
 import xml.etree.ElementTree as xmlElementTree
 
-from ..lib import fusion360utils as futil 
 
 fusionLanguages = {
    fusionUserLanguages.ChinesePRCLanguage       : None,
@@ -29,8 +28,6 @@ class Language:
         """
         self.__showMissingTranslation = showMissingTranslation
         self.__language = fusionLanguages[default]
-        futil.log(f'Languages: {str(fusionLanguages)}') 
-        futil.log(f'Default: {str(default)}') 
         self.__parentDir = parentDir
         dictName = self.__language + ".xml"
         self.__xmlDictionaries = []

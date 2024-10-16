@@ -14,6 +14,10 @@ _ui: adsk.core.UserInterface = None
 
 _myFeatureDef: adsk.fusion.CustomFeatureDefinition = None
 
+# Get the active component.
+app = adsk.core.Application.get()
+des = adsk.fusion.Design.cast(app.activeProduct)
+
 ICON_FOLDER = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'resources', '') 
 
 def create(_app : adsk.core.Application, editCmdDef : adsk.core.CommandDefinition):
@@ -34,18 +38,16 @@ def create(_app : adsk.core.Application, editCmdDef : adsk.core.CommandDefinitio
 def createFromInput( planeInput: adsk.core.SelectionCommandInput,
                      pointInput: adsk.core.SelectionCommandInput,
                      distanceInput: adsk.core.DistanceValueCommandInput,
-                     sizeInput: adsk.core.IntegerSpinnerCommandInput,
+                     sizeInput: adsk.core.FloatSpinnerCommandInput,
                      slotSizeInput: adsk.core.IntegerSpinnerCommandInput,
                      directInput: adsk.core.DropDownCommandInput ):
     """
     Create an element of the feature
 
     The constructed element will become a feature element
+    This implementation was the first shot. It needs much more work
     """
     
-    # Get the active component.
-    app = adsk.core.Application.get()
-    des = adsk.fusion.Design.cast(app.activeProduct)
     activeComponent = des.activeComponent
 
     #try:
@@ -68,9 +70,10 @@ def createFromInput( planeInput: adsk.core.SelectionCommandInput,
         futil.log(f'We created the Geo')
         defLengthUnits = des.unitsManager.defaultLengthUnits
         custFeatureInput = activeComponent.features.customFeatures.createInput(_myFeatureDef)
+        custFeatureInput.addDependency('plane', plane)
         custFeatureInput.addDependency('point', skPoint)
         custFeatureInput.addCustomParameter('length', 'Length', adsk.core.ValueInput.createByString(distanceInput.expression), des.unitsManager.defaultLengthUnits, True)
-        custFeatureInput.addCustomParameter('size', 'Size', adsk.core.ValueInput.createByReal(sizeInput.value), des.unitsManager.defaultLengthUnits, True)
+        custFeatureInput.addCustomParameter('size', 'Size', adsk.core.ValueInput.createByString(sizeInput.expression), des.unitsManager.defaultLengthUnits, True)
         custFeatureInput.setStartAndEndFeatures(startFeature, extr)
         custFeature = activeComponent.features.customFeatures.add(custFeatureInput)
 
@@ -79,11 +82,34 @@ def createFromInput( planeInput: adsk.core.SelectionCommandInput,
     else:
         futil.log('Failed:\n{}'.format(traceback.format_exc()))
         
-def createFromDxf(parent:adsk.fusion.Component,
-                  planeEnt,
-                  dxfFile: str,
-                        length, 
-                        direction ):
+def createFeatFromDxf(parent:adsk.fusion.Component,
+                      planeEnt,
+                      dxfFile: str,
+                      length, 
+                      direction ):
+        """
+        Create a feature element from dxf data
+        """
+        futil.log(f'create alu profile feature from input(s) ')
+        startFeature = parent.features.baseFeatures.add()
+        mat = adsk.core.Matrix3D.create() 
+        newOcc = parent.occurrences.addNewComponent(mat)
+        newComponent =  adsk.fusion.Component.cast(newOcc.component) 
+
+        sk = dxfToSketch(newComponent, planeEnt, dxfFile)
+        body = drawBody(newComponent,sk, length, direction)
+        
+        custFeatureInput = parent.features.customFeatures.createInput(_myFeatureDef)
+        custFeatureInput.addDependency('plane', planeEnt)
+        custFeatureInput.addCustomParameter('length', 'Length', adsk.core.ValueInput.createByReal(length), des.unitsManager.defaultLengthUnits, True)
+        custFeatureInput.setStartAndEndFeatures(startFeature, body)
+        custFeature = parent.features.customFeatures.add(custFeatureInput)
+        
+def createBodyFromDxf(parent:adsk.fusion.Component,
+                      planeEnt,
+                      dxfFile: str,
+                      length, 
+                      direction ):
     """
     we will create the profiles from file
     """
@@ -97,7 +123,7 @@ def createFromDxf(parent:adsk.fusion.Component,
 def drawGeometryGeneric( parent:adsk.fusion.Component, 
                         planeEnt, 
                         pointEnt,  
-                        size_cm, 
+                        size, 
                         slotSize_cm,
                         length, 
                         direction, 
@@ -114,11 +140,21 @@ def drawGeometryGeneric( parent:adsk.fusion.Component,
         if isPreview:
             # the new body type uses a full sketch type because the circular pattern in sketch is more comfort then the circular pattern on body
             # the preview creates a scetch without constrains to reduce calculation overhead
-            sk, startPoint = drawGenericSketch(parent, planeEnt, pointEnt, config.attr_previewSketch, size_cm)
+            sk, startPoint = drawGenericSketch(parent, 
+                                               planeEnt, 
+                                               pointEnt, 
+                                               config.attr_previewSketch, 
+                                               size,
+                                               slotSize_cm)
             body = drawBody(parent,sk, length, direction)
         else:
             # the new body type uses a full sketch type because the circular pattern in sketch is more comfort then the circular pattern on body
-            sk, startPoint = drawGenericSketch(parent, planeEnt, pointEnt, config.attr_fullSketch, size_cm)
+            sk, startPoint = drawGenericSketch(parent, 
+                                               planeEnt, 
+                                               pointEnt, 
+                                               config.attr_fullSketch, 
+                                               size,
+                                               slotSize_cm)
             body = drawBody(parent, sk, length, direction)       
         return sk, body
     except:
@@ -129,7 +165,7 @@ def drawGenericSketch(parent:adsk.fusion.Component,
                       planeEnt:adsk.core.Base, 
                       pointEnt:adsk.core.Base, 
                       sketchType, 
-                      size_cm,
+                      size,
                       slotSize_cm
                     ) -> tuple[adsk.fusion.Sketch, adsk.fusion.SketchPoint]:
     """
@@ -160,13 +196,13 @@ def drawGenericSketch(parent:adsk.fusion.Component,
             # ######################################
             sk.attributes.add(config.attr_SketchStyleGroup, config.attr_SketchStyle, config.attr_previewSketch)
             sk.attributes.add(config.attr_SketchStyleGroup, config.attr_CustomSketch, 'False')
-            size = size_cm / 10
+            
             # in any other case we create a profile without a slice
             skLines = sk.sketchCurves.sketchLines
             sketchArcs = sk.sketchCurves.sketchArcs 
             sketchDimensions = sk.sketchDimensions
             sketchConstraints = sk.geometricConstraints
-            arcRadius = size / 10           
+            arcRadius = size / 10          
 
             # starting with the projected point and goes to x positiv => horizontal 
             pointProfilCenter = adsk.core.Point3D.create(skPnt.geometry.x, skPnt.geometry.y, 0)           
@@ -295,8 +331,6 @@ def drawGenericSketch(parent:adsk.fusion.Component,
             # standard is to hold the quarter sketch
             # ######################################
 
-            # rework with point collection 
-            size = size_cm / 10
             # in any other case we create a profile without a slice
             skLines = sk.sketchCurves.sketchLines
             sketchArcs = sk.sketchCurves.sketchArcs 
