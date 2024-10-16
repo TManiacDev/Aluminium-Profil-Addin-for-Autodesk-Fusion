@@ -3,6 +3,8 @@
 
 Das ist ein Addin für Autodesk Fusion (früher Fusion360) um Alu-Profile generisch zu behandeln. Ein Alu-Profil wird als CustomFeature behandelt, damit man es später einfach editieren kann.
 
+![Ein Preview der Funktion](resources/preview.jpg)
+
 Die Oberfläche soll unabhängig von der konstuktiven Seite sein. Die Oberfläche wie auch die konstruktiven Elemente bekommen die mehrsprachige Unterstützung.
 
 ## Weitere Readme

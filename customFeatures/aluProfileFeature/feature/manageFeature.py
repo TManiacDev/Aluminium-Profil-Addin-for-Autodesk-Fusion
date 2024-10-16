@@ -76,6 +76,7 @@ def createFromInput( planeInput: adsk.core.SelectionCommandInput,
         custFeatureInput.addCustomParameter('size', 'Size', adsk.core.ValueInput.createByString(sizeInput.expression), des.unitsManager.defaultLengthUnits, True)
         custFeatureInput.setStartAndEndFeatures(startFeature, extr)
         custFeature = activeComponent.features.customFeatures.add(custFeatureInput)
+        custFeature.name = "Generic " + sizeInput.expression + "x" + sizeInput.expression
 
 
     #except:
@@ -83,27 +84,43 @@ def createFromInput( planeInput: adsk.core.SelectionCommandInput,
         futil.log('Failed:\n{}'.format(traceback.format_exc()))
         
 def createFeatFromDxf(parent:adsk.fusion.Component,
+                      featName: str,
                       planeEnt,
+                      pointEnt,
                       dxfFile: str,
                       length, 
                       direction ):
-        """
-        Create a feature element from dxf data
-        """
-        futil.log(f'create alu profile feature from input(s) ')
-        startFeature = parent.features.baseFeatures.add()
-        mat = adsk.core.Matrix3D.create() 
-        newOcc = parent.occurrences.addNewComponent(mat)
-        newComponent =  adsk.fusion.Component.cast(newOcc.component) 
+    """
+    Create a feature element from dxf data
+    """
+    futil.log(f'create alu profile feature from input(s) ')
+    startFeature = parent.features.baseFeatures.add()
+    mat = adsk.core.Matrix3D.create() 
+    newOcc = parent.occurrences.addNewComponent(mat)
+    newComponent =  adsk.fusion.Component.cast(newOcc.component) 
+    newComponent.name = featName
 
-        sk = dxfToSketch(newComponent, planeEnt, dxfFile)
-        body = drawBody(newComponent,sk, length, direction)
-        
-        custFeatureInput = parent.features.customFeatures.createInput(_myFeatureDef)
-        custFeatureInput.addDependency('plane', planeEnt)
-        custFeatureInput.addCustomParameter('length', 'Length', adsk.core.ValueInput.createByReal(length), des.unitsManager.defaultLengthUnits, True)
-        custFeatureInput.setStartAndEndFeatures(startFeature, body)
-        custFeature = parent.features.customFeatures.add(custFeatureInput)
+    sk = dxfToSketch(newComponent, planeEnt, dxfFile)
+    extrudeFeat = drawBody(newComponent,sk, length, direction)
+    extrudeFeat.name = featName
+    
+    custFeatureInput = parent.features.customFeatures.createInput(_myFeatureDef)
+    custFeatureInput.addDependency('plane', planeEnt)
+    custFeatureInput.addDependency('point', pointEnt)
+    custFeatureInput.addCustomParameter('length', 'Length', adsk.core.ValueInput.createByReal(length), des.unitsManager.defaultLengthUnits, True)
+    custFeatureInput.setStartAndEndFeatures(startFeature, extrudeFeat)
+    custFeature = parent.features.customFeatures.add(custFeatureInput)
+    featNameSplit = featName.split(' ')
+    custFeature.attributes.add('Configuration', 'Manufacture', featNameSplit[0])
+    custFeature.attributes.add('Configuration', 'Profile', featNameSplit[1])
+    custFeature.name = featName
+
+def updateFeat():
+    """
+    we must do a update work
+    """
+    futil.log(f'create alu profile feature from input(s) ')
+
         
 def createBodyFromDxf(parent:adsk.fusion.Component,
                       planeEnt,
@@ -471,7 +488,7 @@ def drawBody (parent: adsk.fusion.Component, sketch: adsk.fusion.Sketch, length,
                 # Create the extrusion
                 extrude2 = extrudes.add(extrudeInput)
 
-                extrude2.name = profileName
+        extrude2.name = profileName
 
         return extrude2
     except:

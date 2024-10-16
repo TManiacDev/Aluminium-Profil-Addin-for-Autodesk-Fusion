@@ -170,6 +170,8 @@ def editCommand_created(args: adsk.core.CommandCreatedEventArgs):
     # ValidateInputsHandler
     futil.add_handler(args.command.activate, editCommand_activate, local_handlers=local_handlers)
     futil.add_handler(args.command.executePreview, command_preview, local_handlers=local_handlers)
+    futil.add_handler(args.command.inputChanged, command_input_changed, local_handlers=local_handlers)
+    futil.add_handler(args.command.execute, createCommand_execute, local_handlers=local_handlers)
 
 def createCommandView(args: adsk.core.CommandCreatedEventArgs, featureParams: adsk.fusion.CustomFeatureParameters = None):
     """ create the visible command dialog 
@@ -181,14 +183,17 @@ def createCommandView(args: adsk.core.CommandCreatedEventArgs, featureParams: ad
     lengthValue = None
     sizeValue = None
     if featureParams != None:
-        featureLength = featureParams.itemById('length').expression
-        featureSize = featureParams.itemById('size').expression
+        featureLength = featureParams.itemById('length')
+        try:
+            featureSize = featureParams.itemById('size')
+        except:
+            featureSize = None
         if featureLength:
-            lengthValue = adsk.core.ValueInput.createByString(featureLength)
+            lengthValue = adsk.core.ValueInput.createByString(featureLength.expression)
         if featureSize:
-            realSplit = featureSize.split(" ")
-            realSize = adsk.core.ValueInput.createByString(featureSize)
-            futil.log(f'Prepare Initial Value for Size : {featureSize} | {float(realSplit[0])} | the SpinnerInput works on float')
+            realSplit = featureSize.expression.split(" ")
+            realSize = adsk.core.ValueInput.createByString(featureSize.expression)
+            futil.log(f'Prepare Initial Value for Size : {featureSize.expression} | {float(realSplit[0])} | the SpinnerInput works on float')
             sizeValue =  float(realSplit[0])
             sizeUnit = realSplit[1]
  
@@ -262,7 +267,7 @@ def createCommandView(args: adsk.core.CommandCreatedEventArgs, featureParams: ad
     # The Order of this list items is important because the manageFeature doesn't know the translated names
     featureTypeList.listItems.add(_dict.getTranslation('New Body'), True) #, addinConfig.FUSION_UI_RESOURCES_FOLDER + '/Modeling/LeftSide', -1)
     featureTypeList.listItems.add(_dict.getTranslation('New Component'), False) #, addinConfig.FUSION_UI_RESOURCES_FOLDER + '/NewComponent', -1)
-    featureTypeList.listItems.add(_dict.getTranslation('New Feature'), False)#, addinConfig.FUSION_UI_RESOURCES_FOLDER + '/Modeling/Symmetric', -1)
+    featureTypeList.listItems.add(_dict.getTranslation('New Feature'), True)#, addinConfig.FUSION_UI_RESOURCES_FOLDER + '/Modeling/Symmetric', -1)
     featureTypeList.tooltip = _dict.getTranslation('operation_Desc')
 
 def createProfileList(list: adsk.core.DropDownCommandInput):
@@ -303,7 +308,7 @@ def editCommand_activate(args: adsk.core.CommandEventArgs):
     handling the activate event for the edit command 
     """
     # General logging for debug.
-    futil.log(f'{featureConfig.FEATURE_NAME} Command Edit Activate Event')
+    futil.log(f'{featureConfig.FEATURE_NAME} Command Edit Activate Event ' )
     
     eventArgs = adsk.core.CommandEventArgs.cast(args)
     app = adsk.core.Application.get()
@@ -323,13 +328,34 @@ def editCommand_activate(args: adsk.core.CommandEventArgs):
     inputs = args.command.commandInputs
     planeSelect: adsk.core.SelectionCommandInput = inputs.itemById(dialogID.planeSelect)
     pointSelect: adsk.core.SelectionCommandInput = inputs.itemById(dialogID.pointSelect)
+    distanceInput: adsk.core.DistanceValueCommandInput = inputs.itemById(dialogID.distanceInput)
 
     plane = _editedCustomFeature.dependencies.itemById('plane')
     if (plane != None):
         planeSelect.addSelection(plane.entity)
     skPoint = _editedCustomFeature.dependencies.itemById('point')
     if (skPoint != None):
-        pointSelect.addSelection(skPoint.entity)
+        pointSelect.addSelection(skPoint.entity)    
+   
+    manufactureInput: adsk.core.DropDownCommandInput = inputs.itemById(dialogID.manufactureList)
+    # we must preselect the manufacture and following data
+    if (_editedCustomFeature.attributes.count == 2 ):
+        for attr in _editedCustomFeature.attributes:
+            if attr.name == 'Manufacture':
+                profileManufacture =  attr.value
+            if attr.name == 'Profile':
+                profileType =  attr.value
+
+        for item in manufactureInput.listItems:
+            if item.name == profileManufacture:
+                item.isSelected = True
+    # this doesn't work yet, because the profile list isn't loaded at this moment
+    # we must do this on change input event
+    # typeList: adsk.core.DropDownCommandInput = inputs.itemById(dialogID.profileTypeList)
+    # for item in typeList.typeList:
+    #     if item.name == profileType:
+    #         item.isSelected = True
+
 
 # This event handler is called when the user clicks the OK button in the command dialog or 
 # is immediately called after the created event not command inputs were created for the dialog.
@@ -339,8 +365,7 @@ def createCommand_execute(args: adsk.core.CommandEventArgs):
     # General logging for debug.
     futil.log(f'{featureConfig.FEATURE_NAME} Command Execute Event')
 
-    # TODO ******************************** Your code here ********************************
-
+    global _editedCustomFeature
     # Get a reference to your command's inputs.
     inputs = args.command.commandInputs
     # Get the active component.
@@ -403,9 +428,12 @@ def createCommand_execute(args: adsk.core.CommandEventArgs):
         pathName = _profileLib.getProfileFilePath(manufactureName, profileName)
 
         if featureTypeInput.selectedItem.name == _dict.getTranslation('New Feature'):
-            #myFeature.createFromInput(planeSelect, pointSelect, distanceInput, sizeInput, slotSizeInput, directInput)
+            
+            nameIt = manufactureName + " " + profileName
             myFeature.createFeatFromDxf(activeComponent,
+                                        nameIt,
                                         planeEnt,
+                                        pointEnt,
                                         pathName, 
                                         distanceInput.value,
                                         directInput.selectedItem.index)
@@ -423,6 +451,37 @@ def createCommand_execute(args: adsk.core.CommandEventArgs):
             futil.log(f'Execute {manufactureName} {profileName} path: {pathName}')
             myFeature.createBodyFromDxf(newComponent,planeEnt,pathName, distanceInput.value,
                                                     directInput.selectedItem.index)
+            
+    # myFeature.updateProfile()
+
+    # Roll the timeline to its previous position.
+    global _isRolledForEdit
+    if _isRolledForEdit:
+        _restoreTimelineObject.rollTo(False)
+        _isRolledForEdit = False
+    _editedCustomFeature = None
+            
+# This event handler is called when the user clicks the OK button in the command dialog or 
+# is immediately called after the created event not command inputs were created for the dialog.
+def editCommand_execute(args: adsk.core.CommandEventArgs):
+    """ handling the execute event for the edit command 
+        Remark: this event would not fired if the preview sets the isValidResult to True """
+    # General logging for debug.
+    futil.log(f'{featureConfig.FEATURE_NAME} Command Execute Event')
+
+    global _editedCustomFeature
+
+    # Get a reference to your command's inputs.
+    inputs = args.command.commandInputs
+
+    # myFeature.updateProfile()
+
+    # Roll the timeline to its previous position.
+    global _isRolledForEdit
+    if _isRolledForEdit:
+        _restoreTimelineObject.rollTo(False)
+        _isRolledForEdit = False
+    _editedCustomFeature = None
 
 # This event handler is called when the command needs to compute a new preview in the graphics window.
 def command_preview(args: adsk.core.CommandEventArgs):
@@ -521,7 +580,7 @@ def command_input_changed(args: adsk.core.InputChangedEventArgs):
                 plane = planeSelect.selection(0).entity.geometry
                 selection_point = pointSelect.selection(0).entity.geometry
                 distanceInput.setManipulator(selection_point, plane.normal)
-                distanceInput.expression = "10mm"
+                #distanceInput.expression = "10mm"
                 distanceInput.isEnabled = True
             else:
                 distanceInput.isEnabled = False
@@ -529,6 +588,19 @@ def command_input_changed(args: adsk.core.InputChangedEventArgs):
     genericInputGroup: adsk.core.GroupCommandInput = inputs.itemById(dialogID.genericTypeGroup)
     libGroupInputs: adsk.core.GroupCommandInput = inputs.itemById(dialogID.libTypeGroup)
     typeList: adsk.core.DropDownCommandInput = inputs.itemById(dialogID.profileTypeList)
+    
+    # we must preselect the manufacture and following data
+    if _editedCustomFeature != None:
+        if (_editedCustomFeature.attributes.count == 2 ):
+            for attr in _editedCustomFeature.attributes:
+                if attr.name == 'Manufacture':
+                    profileManufacture =  attr.value
+                if attr.name == 'Profile':
+                    profileType =  attr.value
+    else:
+        profileManufacture =  None
+        profileType =  None
+
     if changed_input.objectType == adsk.core.DropDownCommandInput.classType():
         if changed_input.id == dialogID.manufactureList:
             if manufactureInput.selectedItem.index == 0:
@@ -545,9 +617,13 @@ def command_input_changed(args: adsk.core.InputChangedEventArgs):
                 # update the list before show it
                 profilList = _profileLib.getProfilListByManufacture(manufactureInput.selectedItem.name)
                 typeList.listItems.clear()
+                if profileType == None:
+                    profileType = profilList[0].get("name")
                 for profil in profilList:
                     # add list item
-                    if profil == profilList[0]:
+                    if profil.get("name") == profileType:
+                        # select the first element
+                        # on change during edit feature we should select the allready created profil
                         typeList.listItems.add(profil.get("name"), True)
                     else:
                         typeList.listItems.add(profil.get("name"), False)
