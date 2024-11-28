@@ -9,4 +9,13 @@
     <profile name="P40x120L_N8_I">
         <dxf-file>P40x120L_N8_I.dxf</dxf-file>
     </profile>
+    <profile name="P40x80_N10_B">
+        <dxf-file>P40x80_N10_B.dxf</dxf-file>
+    </profile>
+    <profile name="P45x90L_N10_B">
+        <dxf-file>P45x90L_N10_B.dxf</dxf-file>
+    </profile>
+    <profile name="P45x90S_N10_B">
+        <dxf-file>P45x90S_N10_B.dxf</dxf-file>
+    </profile>
 </profiles>
