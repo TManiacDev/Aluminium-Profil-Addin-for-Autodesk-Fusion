@@ -9,6 +9,7 @@ profileTypeList = 'profileTypeList_Id'
 ## 
 genericTypeGroup = 'genericTypeGroup_Id'
 libTypeGroup = 'libTypeGroup_Id'
+libFilterGroup = 'libFilterGroup_Id'
 slotTypeList ='slotTypeList_Id'
 
 sizeSpinner = 'sizeSpinner_Id'

@@ -241,6 +241,10 @@ def createCommandView(args: adsk.core.CommandCreatedEventArgs, featureParams: ad
     inputName =  _dict.getTranslation('Slot Size')
     slotSizeSpinner = genericGroupInputs.children.addIntegerSpinnerCommandInput(dialogID.slotSizeSpinner, inputName , 4, 10, 2, 8)
 
+    libFilterGroupInputs = inputs.addGroupCommandInput(dialogID.libFilterGroup, 'Filter from Library')
+    createLibInput(libFilterGroupInputs)
+    libFilterGroupInputs.isVisible = False
+
     libGroupInputs = inputs.addGroupCommandInput(dialogID.libTypeGroup, 'Select from Library')
     createLibInput(libGroupInputs)
     libGroupInputs.isVisible = False
@@ -248,7 +252,7 @@ def createCommandView(args: adsk.core.CommandCreatedEventArgs, featureParams: ad
     if distanceInput == None:
         inputName =  _dict.getTranslation('Distance')
         if lengthValue == None:
-            lengthValue = adsk.core.ValueInput.createByString('10.0 cm')
+            lengthValue = adsk.core.ValueInput.createByString('100.0 mm')
         distanceInput = inputs.addDistanceValueCommandInput(dialogID.distanceInput, inputName, lengthValue)
         distanceInput.isEnabled = False
 

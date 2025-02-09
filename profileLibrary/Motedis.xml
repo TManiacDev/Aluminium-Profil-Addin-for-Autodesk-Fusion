@@ -1,21 +1,204 @@
 <?xml version="1.0"?>
 <profiles manufacture="Motedis">
-    <profile name="P40x40L_N8_I">
+    <profile id="P40x40L_N8_I" name="40x80L I-Typ Nut 8" dim="40" type="I" slot="8" style="Light" order_nr="40x40L I-Typ Nut 8">
         <dxf-file>P40x40L_N8_I.dxf</dxf-file>
+        <shop date="2025-02-01" ref_cost="15 €/m">
+            <tab01 name="Zuschnitt">
+                <cut min="50" max="1980">13,13 €/m</cut>
+                <machining name="M8">1,05</machining>
+                <machining name="I-D11 (I-Type)">1,58</machining>
+                <machining name="I-D11 (B-Type)">1,58</machining>
+                <machining name="Senkbohrung">1,05</machining>
+            </tab01>
+            <tab02 name="Zuschnitt ganzer Stab">
+                <cut min="500" max="6000">12,62 €/m</cut>
+            </tab02>
+            <tab03 name="Standardlängen">
+                <cut length="200">12,26 €/m</cut>
+                <cut length="300">12,26 €/m</cut>
+                <cut length="415">12,26 €/m</cut>
+                <cut length="418">12,26 €/m</cut>
+                <cut length="500">12,26 €/m</cut>
+                <cut length="600">12,26 €/m</cut>
+                <cut length="800">12,26 €/m</cut>
+                <cut length="1000">12,26 €/m</cut>
+                <cut length="1500">12,26 €/m</cut>
+                <cut length="1980">12,26 €/m</cut>
+            </tab03>
+            <tab04 name="Makerpacks">
+                <cut count="6" length="200">11,90 €/m</cut>
+                <cut count="6" length="300">11,90 €/m</cut>
+                <cut count="6" length="415">11,90 €/m</cut>
+                <cut count="6" length="418">11,90 €/m</cut>
+                <cut count="6" length="500">11,90 €/m</cut>
+                <cut count="6" length="600">11,90 €/m</cut>
+                <cut count="6" length="800">11,90 €/m</cut>
+                <cut count="6" length="1000">11,90 €/m</cut>
+                <cut count="6" length="1500">11,90 €/m</cut>
+                <cut count="6" length="1980">11,90 €/m</cut>
+            </tab04>
+        </shop>
     </profile>
-    <profile name="P40x80L_N8_I">
+    <profile id="P40x80L_N8_I" name="40x80 L I-Typ Nut 8" dim="40" type="I" slot="8" style="Light" order_nr="40x80L I-Typ Nut 8">
         <dxf-file>P40x80L_N8_I.dxf</dxf-file>
+        <shop date="2025-02-01" ref_cost="27 €/m"></shop>
     </profile>
-    <profile name="P40x120L_N8_I">
+    <profile id="P40x120L_N8_I" name="40x120 L I-Typ Nut 8" dim="40" type="I" slot="8" style="Light" order_nr="40x120L I-Typ Nut 8">
         <dxf-file>P40x120L_N8_I.dxf</dxf-file>
+        <shop date="2025-02-01" ref_cost="34 €/m"></shop>
     </profile>
-    <profile name="P40x80_N10_B">
+    <profile id="P40x160L_N8_I" name="40x160 L I-Typ Nut 8" dim="40" type="I" slot="8" style="Light" order_nr="40x160L I-Typ Nut 8">
+        <dxf-file>P40x160L_N8_I.dxf</dxf-file>
+        <shop date="2025-02-01" ref_cost="45 €/m"></shop>
+    </profile>
+    <profile id="P40x160E_N8_I" name="40x160 E 4N I-Typ Nut 8" dim="40" type="I" slot="8" style="E" order_nr="40x160E 4N I-Typ Nut 8">
+        <dxf-file>P40x160E_N8_I.dxf</dxf-file>
+        <shop date="2025-02-01" ref_cost="29 €/m"></shop>
+    </profile>
+    <profile id="P80x80L_N8_I" name="80x80 L I-Typ Nut 8" dim="40" type="I" slot="8" style="Light" order_nr="80x80L I-Typ Nut 8">
+        <dxf-file>P80x80L_N8_I.dxf</dxf-file>
+        <shop date="2025-02-01" ref_cost="49 €/m"></shop>
+    </profile>
+    <profile id="P80x120L_N8_I" name="80x120 L I-Typ Nut 8" dim="40" type="I" slot="8" style="Light" order_nr="12015">
+        <dxf-file>P80x120L_N8_I.dxf</dxf-file>
+        <shop date="2025-02-01" ref_cost="105 €/m"></shop>
+    </profile>
+    <profile id="P80x160L_N8_I" name="80x160 L I-Typ Nut 8" dim="40" type="I" slot="8" style="Light" order_nr="12016">
+        <dxf-file>P80x160L_N8_I.dxf</dxf-file>
+        <shop date="2025-02-01" ref_cost="140 €/m"></shop>
+    </profile>
+
+    <profile id="P30x30_N8_B" name="30x30 B-Typ Nut 8" dim="30" type="B" slot="8" order_nr="30x30 B-Typ Nut 8">
+        <dxf-file>P30x30_N8_B.dxf</dxf-file>
+        <shop date="2025-02-01" ref_cost="8 €/m"></shop>
+    </profile>
+    <profile id="P30x60_N8_B" name="30x60 B-Typ Nut 8" dim="30" type="B" slot="8" order_nr="30x60 B-Typ Nut 8">
+        <dxf-file>P30x60_N8_B.dxf</dxf-file>
+        <shop date="2025-02-01" ref_cost="15 €/m"></shop>
+    </profile>
+    <profile id="P30x120_N8_B" name="30x120 B-Typ Nut 8" dim="30" type="B" slot="8" order_nr="30x120 B-Typ Nut 8">
+        <dxf-file>P30x120_N8_B.dxf</dxf-file>
+        <shop date="2025-02-01" ref_cost="32 €/m"></shop>
+    </profile>
+
+    <profile id="P20x20_N6_B" name="20x20 B-Typ Nut 6" dim="20" type="B" slot="6" order_nr="20x20 B-Typ Nut 6">
+        <dxf-file>P20x20_N6_B.dxf</dxf-file>
+        <shop date="2025-02-01" ref_cost="4 €/m"></shop>
+    </profile>
+    <profile id="P20x40_N6_B" name="20x40 B-Typ Nut 6" dim="20" type="B" slot="6" order_nr="20x40 B-Typ Nut 6">
+        <dxf-file>P20x40_N6_B.dxf</dxf-file>
+        <shop date="2025-02-01" ref_cost="7 €/m"></shop>
+    </profile>
+    <profile id="P20x20_N5_I" name="20x20 I-Typ Nut 5" dim="20" type="I" slot="5" order_nr="20x20 I-Typ Nut 5">
+        <dxf-file>P20x20_N5_I.dxf</dxf-file>
+        <shop date="2025-02-01" ref_cost="5 €/m"></shop>
+    </profile>
+    <profile id="P20x40_N5_I" name="20x40 I-Typ Nut 5" dim="20" type="I" slot="5" order_nr="20x40 I-Typ Nut 5">
+        <dxf-file>P20x40_N5_I.dxf</dxf-file>
+        <shop date="2025-02-01" ref_cost="9 €/m"></shop>
+    </profile>
+    <profile id="P20x60_N5_I" name="20x60 I-Typ Nut 5" dim="20" type="I" slot="5" order_nr="20x60 I-Typ Nut 5">
+        <dxf-file>P20x60_N5_I.dxf</dxf-file>
+        <shop date="2025-02-01" ref_cost="15 €/m"></shop>
+    </profile>
+    <profile id="P20x80_N5_I" name="20x80 I-Typ Nut 5" dim="20" type="I" slot="5" order_nr="20x80 I-Typ Nut 5">
+        <dxf-file>P20x80_N5_I.dxf</dxf-file>
+        <shop date="2025-02-01" ref_cost="20 €/m"></shop>
+    </profile>
+
+    <profile id="P45x45L_N10_B" name="45x45L B-Typ Nut 10" dim="45" type="B" slot="10" style="Light" order_nr="45x45L B-Typ Nut 10">
+        <dxf-file>P45x45L_N10_B.dxf</dxf-file>
+        <shop date="2025-02-01" ref_cost="14 €/m"></shop>
+    </profile>
+    <profile id="P45x90L_N10_B" name="45x90L B-Typ Nut 10" dim="45" type="B" slot="10" style="Light" order_nr="45x90L B-Typ Nut 10">
+        <dxf-file>P45x90L_N10_B.dxf</dxf-file>
+        <shop date="2025-02-01" ref_cost="28 €/m"></shop>
+    </profile>
+    <profile id="P90x90L_N10_B" name="90x90L B-Typ Nut 10" dim="45" type="B" slot="10" style="Light" order_nr="90x90 L B-Typ Nut 10">
+        <dxf-file>P90x90L_N10_B.dxf</dxf-file>
+        <shop date="2025-02-01" ref_cost="73 €/m"></shop>
+    </profile>
+    <profile id="P45x180L_N10_B_FLAT" name="45x180L glatt B-Typ Nut 10" dim="45" type="B" slot="10" style="Light Flat" order_nr="022536">
+        <dxf-file>P45x180L_N10_B_FLAT.dxf</dxf-file>
+        <shop date="2025-02-01" ref_cost="94 €/m"></shop>
+    </profile>
+    
+    <profile id="P45x45LR_N10_B" name="45x45 LR B-Typ Nut 10" dim="45" type="B" slot="10" style="Light Round" order_nr="10861">
+        <dxf-file>P45x45LR_N10_B.dxf</dxf-file>
+        <shop date="2025-02-01" ref_cost="19 €/m"></shop>
+    </profile>
+
+    <profile id="P30x30L_N6_I" name="30x30L I-Typ Nut 6" dim="30" type="I" slot="6" style="Light" order_nr="019597">
+        <dxf-file>P30x30L_N6_I.dxf</dxf-file>
+        <shop date="2025-02-01" ref_cost="9 €/m"></shop>
+    </profile>
+    <profile id="P30x60L_N6_I" name="30x60L I-Typ Nut 6" dim="30" type="I" slot="6" style="Light" order_nr="019598">
+        <dxf-file>P30x60L_N6_I.dxf</dxf-file>
+        <shop date="2025-02-01" ref_cost="16 €/m"></shop>
+    </profile>
+    
+    <profile id="P40_HINGE_Z_N8_I" name="Scharnierprofil Z I-Typ Nut 8" dim="40" type="I" slot="8" style="Hinge" order_nr="I8 Scharnierprofil z">
+        <dxf-file>P40_HINGE_Z_N8_I.dxf</dxf-file>
+        <shop date="2025-02-01" ref_cost="17 €/m"></shop>
+    </profile>
+    <profile id="P40_HINGE_E_N8_I" name="Scharnierprofil E I-Typ Nut 8" dim="40" type="I" slot="8" style="Hinge" order_nr="I8 Scharnierprofil e">
+        <dxf-file>P40_HINGE_E_N8_I.dxf</dxf-file>
+        <shop date="2025-02-01" ref_cost="15 €/m"></shop>
+    </profile>
+
+    <profile id="P40_CSP_RAIL_N8_I" name="CSP Schiene I-Typ Nut 8" dim="40" type="I" slot="8" style="Hinge" order_nr="I8 CSP Schiene">
+        <dxf-file>P40_CSP_RAIL_N8_I.dxf</dxf-file>
+        <shop date="2025-02-01" ref_cost="60 €/m"></shop>
+    </profile>
+    <profile id="P40_CSP_SLIDE_N8_I" name="CSP Schlitten I-Typ Nut 8" dim="40" type="I" slot="8" style="Hinge" order_nr="I8 CSP Schiene">
+        <dxf-file>P40_CSP_SLIDE_N8_I.dxf</dxf-file>
+        <shop date="2025-02-01" ref_cost="55 €/m"></shop>
+    </profile>
+    
+    <profile id="P40_PLATE_N8_I" name="20x152 I-Typ Nut 8 - Plattenprofil" dim="40" type="I" slot="8" style="Plate" order_nr="I8 20152">
+        <dxf-file>P40_PLATE_N8_I.dxf</dxf-file>
+        <shop date="2025-02-01" ref_cost="95 €/m"></shop>
+    </profile>
+
+    <profile id="P40_R45_N8_I" name="Radius 40/80 45° I-Typ Nut 8" dim="40" type="I" slot="8" style="Round" order_nr="I8 40RR45">
+        <dxf-file>P40_R45_N8_I.dxf</dxf-file>
+        <shop date="2025-02-01" ref_cost="47 €/m"></shop>
+    </profile>
+    <profile id="P40_R60_N8_I" name="Radius 40/80 60° I-Typ Nut 8" dim="40" type="I" slot="8" style="Round" order_nr="I8 40RR60">
+        <dxf-file>P40_R60_N8_I.dxf</dxf-file>
+        <shop date="2025-02-01" ref_cost="51 €/m"></shop>
+    </profile>
+    <profile id="P40x40LR_N8_I" name="40x40 LR I-Typ Nut 8" dim="40" type="I" slot="8" style="Light Round" order_nr="10995">
+        <dxf-file>P40x40LR_N8_I.dxf</dxf-file>
+        <shop date="2025-02-01" ref_cost="22 €/m"></shop>
+    </profile>
+
+
+    <profile id="P40x80x80L_N8_I" name="40x80x80L I-Typ Nut 8" dim="40" type="I" slot="8" style="Light" order_nr="I8408080L">
+        <dxf-file>P40x80x80L_N8_I.dxf</dxf-file>
+        <shop date="2025-02-01" ref_cost="79 €/m"></shop>
+    </profile>
+    <profile id="P28x160_PLATE_N8_I" name="28x160 I-Typ Nut 8" dim="40" type="I" slot="8" style="Plate" order_nr="I8 28160">
+        <dxf-file>P28x160_PLATE_N8_I.dxf</dxf-file>
+        <shop date="2025-02-01" ref_cost="144 €/m"></shop>
+    </profile>
+    <profile id="P28x200_PLATE_N8_I" name="28x200 I-Typ Nut 8" dim="40" type="I" slot="8" style="Plate" order_nr="I8 28200">
+        <dxf-file>P28x200_PLATE_N8_I.dxf</dxf-file>
+        <shop date="2025-02-01" ref_cost="177 €/m"></shop>
+    </profile>
+    <profile id="P16x160_PLATE_N8_I" name="160x16 I-Typ Nut 8" dim="40" type="I" slot="8" style="Plate" order_nr="12764">
+        <dxf-file>P16x160_PLATE_N8_I.dxf</dxf-file>
+        <shop date="2025-02-01" ref_cost="53 €/m"></shop>
+    </profile>
+    <profile id="P20x55_PLATE_N8_I" name="20x55 I-Typ Nut 8 - Plattenverbindungsprofil" dim="40" type="I" slot="8" style="Plate" order_nr="I8 2055">
+        <dxf-file>P20x55_PLATE_N8_I.dxf</dxf-file>
+        <shop date="2025-02-01" ref_cost="29 €/m"></shop>
+    </profile>
+
+    <profile name="P40x80_N10_B" dim="40" type="B" slot="10" order_nr="">
         <dxf-file>P40x80_N10_B.dxf</dxf-file>
     </profile>
-    <profile name="P45x90L_N10_B">
-        <dxf-file>P45x90L_N10_B.dxf</dxf-file>
-    </profile>
-    <profile name="P45x90S_N10_B">
+    <profile name="P45x90S_N10_B" dim="45" type="B" slot="10" style="Strong" order_nr="">
         <dxf-file>P45x90S_N10_B.dxf</dxf-file>
     </profile>
 </profiles>

@@ -22,8 +22,9 @@ Mit 'Select Plane' und 'Select Pivot Point' wird der Ausgangspunkt des Profiles 
 
 Die Typen "Generic" und "None" machen aktuell das Gleiche. Sie erzeugen ein einfaches Profil bei dem man die Größe auswählen kann.
 Die generische Form ist noch recht unflexibel. Der Slot ist in einer "config"-Klasse fest verankert. Hier darf gerne eine komplett generische Formklasse geschaffen werden. Die Abmaße der Form lassen sich schon frei variieren.
+Der Profilgenerator ist auch für einfache Halbzeuge nutzbar. So habe ich ein paar Standardprofile in die generische Erzeugung mit aufgenommen.
 
-Die Herstellerbibliothek enthält ein paar Beispiele der Hersteller [Motedis](https://www.motedis.com) und [Minitec](https://www.minitec.de) um zu zeigen wie der SVG Support funktioniert. Die SVGs welche enthalten sind, habe ich aus den öffentlich zugänglichen Step-Dateien erzeugt. Das Copyright der Formen obliegt den jeweiligen Herstellern.
+Die Herstellerbibliothek enthält ein paar Beispiele der Hersteller [Motedis](https://www.motedis.com) und [Minitec](https://www.minitec.de) um zu zeigen wie der DXF Support funktioniert. Die DXFs welche enthalten sind, habe ich aus den öffentlich zugänglichen Step-Dateien erzeugt. Das Copyright der Formen obliegt den jeweiligen Herstellern.
 
 Die Profillänge (Distance) lässt sich wie von der Extrusion gewohnt per Eingabe oder Griff einstellen. Es gibt noch keine "bis zu.." Funktion.
 
@@ -35,6 +36,12 @@ Damit erhält man die Möglichkeit das Aluminiumprofil als Einheit zu editieren.
 Auch spätere gerenerierte Verbinder lassen sich nur über dieses Feature handhaben.
 ## manageFeature.py
 
+## Known Issues
+- Ich habe irgendwo die Längenangabe zwischen Millimeter und Zentimeter verwechselt
+- Der Längenmanipulator verhält sich bei "Symetric" noch nicht wie man es von anderen Features gewohnt ist.
+- Es muss bei den dxf-Vorlagen unbedingt darauf geachtet werden wo der Nullpunkt liegt.
+- Es wird ein Winkelmaß benötigt um Profile wie 40x80 auszurichten.
+- Die Konstruktion sollte auf einer eigenen Ebene ausgeführt werden. So lässt sich ein bestehendes Profil später leichter an andere anbinden.
 
 --------------------------
 # English Text
