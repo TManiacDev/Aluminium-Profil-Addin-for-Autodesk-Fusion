@@ -26,6 +26,8 @@ _editedCustomFeature: adsk.fusion.CustomFeature = None
 _restoreTimelineObject: adsk.fusion.TimelineObject = None
 _isRolledForEdit = False
 
+_typeList:adsk.core.DropDownCommandInput = None
+
 _dict = None
 #_dict = translation.Language( adsk.core.UserLanguages.EnglishLanguage, RES_FOLDER)
 #_dict = translation.Language( adsk.core.UserLanguages.GermanLanguage, RES_FOLDER)
@@ -241,14 +243,17 @@ def createCommandView(args: adsk.core.CommandCreatedEventArgs, featureParams: ad
     inputName =  _dict.getTranslation('Slot Size')
     slotSizeSpinner = genericGroupInputs.children.addIntegerSpinnerCommandInput(dialogID.slotSizeSpinner, inputName , 4, 10, 2, 8)
 
+    # this group isn't used today ??? Why ???
     libFilterGroupInputs = inputs.addGroupCommandInput(dialogID.libFilterGroup, 'Filter from Library')
     createLibInput(libFilterGroupInputs)
     libFilterGroupInputs.isVisible = False
 
+    # this group is to show profile selection from library
     libGroupInputs = inputs.addGroupCommandInput(dialogID.libTypeGroup, 'Select from Library')
     createLibInput(libGroupInputs)
     libGroupInputs.isVisible = False
 
+    # here comes some general data like distance/length
     if distanceInput == None:
         inputName =  _dict.getTranslation('Distance')
         if lengthValue == None:
@@ -269,9 +274,9 @@ def createCommandView(args: adsk.core.CommandCreatedEventArgs, featureParams: ad
     # Create the list for dircetion type.
     featureTypeList = inputs.addDropDownCommandInput(dialogID.featureTypeList, _dict.getTranslation('Operation'), adsk.core.DropDownStyles.LabeledIconDropDownStyle)
     # The Order of this list items is important because the manageFeature doesn't know the translated names
-    featureTypeList.listItems.add(_dict.getTranslation('New Body'), True) #, addinConfig.FUSION_UI_RESOURCES_FOLDER + '/Modeling/LeftSide', -1)
-    featureTypeList.listItems.add(_dict.getTranslation('New Component'), False) #, addinConfig.FUSION_UI_RESOURCES_FOLDER + '/NewComponent', -1)
-    featureTypeList.listItems.add(_dict.getTranslation('New Feature'), True)#, addinConfig.FUSION_UI_RESOURCES_FOLDER + '/Modeling/Symmetric', -1)
+    featureTypeList.listItems.add(_dict.getTranslation('New Body'), False) #, addinConfig.FUSION_UI_RESOURCES_FOLDER + '/Modeling/LeftSide', -1)
+    featureTypeList.listItems.add(_dict.getTranslation('New Component'), True) #, addinConfig.FUSION_UI_RESOURCES_FOLDER + '/NewComponent', -1)
+    featureTypeList.listItems.add(_dict.getTranslation('New Feature'), False)#, addinConfig.FUSION_UI_RESOURCES_FOLDER + '/Modeling/Symmetric', -1)
     featureTypeList.tooltip = _dict.getTranslation('operation_Desc')
 
 def createProfileList(list: adsk.core.DropDownCommandInput):
@@ -300,10 +305,13 @@ def createLibInput(groupInput: adsk.core.GroupCommandInput):
                                                    copyrightText, 
                                                    6, 
                                                    True) 
-    # Create the list for dircetion type.
-    directTypeList = groupInput.children.addDropDownCommandInput(dialogID.profileTypeList, 
+    # Create the list for direction type.
+    global _typeList
+    _typeList = groupInput.children.addDropDownCommandInput(dialogID.profileTypeList, 
                                                                  _dict.getTranslation('Select Profile Type'), 
                                                                  adsk.core.DropDownStyles.TextListDropDownStyle)
+    
+    _typeList.listItems.add("TestName", False)
 
 # This event handler is called when the edit dialog comes active
 # We is this to set the selection to the plane and point.
@@ -592,6 +600,12 @@ def command_input_changed(args: adsk.core.InputChangedEventArgs):
     genericInputGroup: adsk.core.GroupCommandInput = inputs.itemById(dialogID.genericTypeGroup)
     libGroupInputs: adsk.core.GroupCommandInput = inputs.itemById(dialogID.libTypeGroup)
     typeList: adsk.core.DropDownCommandInput = inputs.itemById(dialogID.profileTypeList)
+
+    ################################
+    # to try the global thing:
+    global _typeList
+    # typeList = _typeList  # if this is activ it works, but why doesn't work it without global ?????
+    ################################
     
     # we must preselect the manufacture and following data
     if _editedCustomFeature != None:
@@ -620,18 +634,29 @@ def command_input_changed(args: adsk.core.InputChangedEventArgs):
                 genericInputGroup.isVisible = False
                 # update the list before show it
                 profilList = _profileLib.getProfilListByManufacture(manufactureInput.selectedItem.name)
+                futil.log(f"DropDown List size before clear {typeList.listItems.count}")
+                for item in typeList.listItems:
+                    futil.log(f"old Item: {item.name}")
+
                 typeList.listItems.clear()
+                # dann wollen wir mal abwarten ob im Forum was dazu geschrieben wird
+                # https://forums.autodesk.com/t5/fusion-api-and-scripts-forum/is-there-something-changed-on-drop-down-list/td-p/13959495
                 if profileType == None:
                     profileType = profilList[0].get("name")
+                    
                 for profil in profilList:
                     # add list item
                     if profil.get("name") == profileType:
                         # select the first element
                         # on change during edit feature we should select the allready created profil
                         typeList.listItems.add(profil.get("name"), True)
+                        futil.log(f"Add profil to list : {profil.get('name')}")
                     else:
                         typeList.listItems.add(profil.get("name"), False)
-                
+                        futil.log(f"Add profil to list : {profil.get('name')}")
+                futil.log(f"DropDown List size after clear {typeList.listItems.count}")
+                for item in typeList.listItems:
+                    futil.log(f"new Item: {item.name}")
                 libGroupInputs.isVisible = True
 
 
